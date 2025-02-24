@@ -13,8 +13,8 @@ const int TRANSMIT_PIN = 11;
 const int SENSOR_PINS[] = {A0, A1, A2, A3, A4, A5, A6, A7};
 const int NUM_SENSORS = 8; //amount of sensors
 
-int threshold = 300;  //Threshold for obstacle avoidance
-
+int THRESHOLD_MIN = 400;  //Minimum value for Threshold for obstacle avoidance
+int THRESHOLD_MAX = 1023; //maximum value for obstacle avoidance
 /*
 The 8 IR sensors return analog values (0-1023).
 Dark lines (black) give low values (~0-300).
@@ -22,7 +22,8 @@ Light surfaces (white) give high values (~700-1023).
 */
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
+
 
   //Set all sensor pins as input
   for(int i = 0; i < NUM_SENSORS; i++)
@@ -43,52 +44,55 @@ void loop() {
   bool obstacleDetected = false;
   int sensorValues[NUM_SENSORS];
 
+
+  Serial.print("Sensors: ");
   //read all values from the snesors
   for (int i = 0; i < NUM_SENSORS; i++)
   {
-    Serial.print("Sensors: ");
     sensorValues[i] = analogRead(SENSOR_PINS[i]); //read all IRsensor data
     Serial.print(sensorValues[i]); //print IRsensor datas
     Serial.print(" ");
 
     //checks if sensors detect any obstacles
-    if(sensorValues[i] > threshold)
+    if(sensorValues[i] < THRESHOLD_MAX && sensorValues[i] > THRESHOLD_MIN)
     {
       obstacleDetected = true;
     }
   }
 
   Serial.println();
-  Serial.println("-------------------");
+  Serial.println("-------------------------");
   delay(200);
 
 
-  int LEFT_SIDE = sensorValues[0]; //reads the left most sensor 
-  int RIGHT_SIDE = sensorValues[7]; //reads the right most senor
-   
+  int LEFT_SIDE = sensorValues[0] + sensorValues[1]; //reads the left most sensor 
+  int RIGHT_SIDE = sensorValues[7] + sensorValues[6]; //reads the right most senor
+
+
+
    // a obstacle is detected the if statemnet starts
+
+  moveForward();
+
   if (obstacleDetected)
   {
     stopMotor(); //stop robot motor
-    delay(500);
+    delay(200);
+    
 
     if(LEFT_SIDE > RIGHT_SIDE)
     {
       dodgeRight(); 
-      delay(500);
     }
-    else 
+    else
     {
       dodgeLeft();
-      delay(500);
     }
 
     moveForward();
-    delay(500);
   }
 
 }
-
 
 //function to make robot go forward
 void moveForward() {  
