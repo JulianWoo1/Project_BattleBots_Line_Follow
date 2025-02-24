@@ -9,8 +9,9 @@ const int MOTOR_B2 = 9;
 
 const int TRANSMIT_PIN = 11;
 
+//define IR Sensor pins
 const int SENSOR_PINS[] = {A0, A1, A2, A3, A4, A5, A6, A7};
-const int NUM_SENSORS = 8;
+const int NUM_SENSORS = 8; //amount of sensors
 
 int threshold = 300;  //Threshold for obstacle avoidance
 
@@ -23,12 +24,18 @@ Light surfaces (white) give high values (~700-1023).
 void setup() {
   Serial.begin(115200);
 
+  //Set all sensor pins as input
   for(int i = 0; i < NUM_SENSORS; i++)
   {
     pinMode(SENSOR_PINS[i], INPUT);
   }
 
   pinMode(TRANSMIT_PIN, OUTPUT);
+
+  pinMode(MOTOR_A1, OUTPUT);
+  pinMode(MOTOR_A2, OUTPUT);
+  pinMode(MOTOR_B1, OUTPUT);
+  pinMode(MOTOR_B2, OUTPUT);
 }
 
 void loop() {
@@ -36,61 +43,48 @@ void loop() {
   bool obstacleDetected = false;
   int sensorValues[NUM_SENSORS];
 
+  //read all values from the snesors
   for (int i = 0; i < NUM_SENSORS; i++)
   {
-    sensorValues[i] = analogRead(SENSOR_PINS[i]);
-    Serial.print("Sensor ");
-    Serial.print(i + 1);
-    Serial.print(": ");
-    Serial.println(sensorValues[i]);
+    Serial.print("Sensors: ");
+    sensorValues[i] = analogRead(SENSOR_PINS[i]); //read all IRsensor data
+    Serial.print(sensorValues[i]); //print IRsensor datas
+    Serial.print(" ");
 
-
-    if(sensorValues > threshold)
+    //checks if sensors detect any obstacles
+    if(sensorValues[i] > threshold)
     {
       obstacleDetected = true;
     }
   }
 
+  Serial.println();
   Serial.println("-------------------");
   delay(200);
 
+
+  int LEFT_SIDE = sensorValues[0]; //reads the left most sensor 
+  int RIGHT_SIDE = sensorValues[7]; //reads the right most senor
+   
+   // a obstacle is detected the if statemnet starts
   if (obstacleDetected)
   {
-    stopMotor();
+    stopMotor(); //stop robot motor
     delay(500);
-    dodgeLeft();
-    delay(500);
-    moveForward();
-  }
 
-/*
-  int leftValue = analogRead(SENSOR_PINS[0]); 
-  int rightValue = analogRead(SENSOR_PINS[7]); 
-
-  if (sensorValues[0] > threshold || sensorValues[1] > threshold)  
-  {
-    dodgeRight();  
-  } 
-  else if (sensorValues[6] > threshold || sensorValues[7] > threshold)  
-  {
-    dodgeLeft();  
-  } 
-  else 
-  {
-    moveForward();  
-  }
-
-*/
-
-  delay(1000);
-
-  if (Serial.available())
-  {
-    char command = Serial.read();
-    if (command == '1')
+    if(LEFT_SIDE > RIGHT_SIDE)
     {
-      moveForward();
+      dodgeRight(); 
+      delay(500);
     }
+    else 
+    {
+      dodgeLeft();
+      delay(500);
+    }
+
+    moveForward();
+    delay(500);
   }
 
 }
