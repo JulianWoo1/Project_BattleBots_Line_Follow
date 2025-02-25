@@ -9,12 +9,18 @@ const int MOTOR_B2 = 9;
 
 const int TRANSMIT_PIN = 11;
 
+const int MAX_SPEED = 240;
+
+const int DODGE_SPEED = 191;
+
+
 //define IR Sensor pins
 const int SENSOR_PINS[] = {A0, A1, A2, A3, A4, A5, A6, A7};
 const int NUM_SENSORS = 8; //amount of sensors
 
-int THRESHOLD_MIN = 400;  //Minimum value for Threshold for obstacle avoidance
-int THRESHOLD_MAX = 1023; //maximum value for obstacle avoidance
+int THRESHOLD_MIN = 200;  //Minimum value for Threshold for obstacle avoidance
+int THRESHOLD_MAX = 800; //maximum value for obstacle avoidance
+
 /*
 The 8 IR sensors return analog values (0-1023).
 Dark lines (black) give low values (~0-300).
@@ -41,7 +47,7 @@ void setup() {
 
 void loop() {
 
-  bool obstacleDetected = false;
+  bool obstacleDetected = false;  
   int sensorValues[NUM_SENSORS];
 
 
@@ -61,7 +67,7 @@ void loop() {
   }
 
   Serial.println();
-  Serial.println("-------------------------");
+  Serial.println("---------------------------------");
   delay(200);
 
 
@@ -72,61 +78,83 @@ void loop() {
 
    // a obstacle is detected the if statemnet starts
 
+
+
   moveForward();
 
   if (obstacleDetected)
   {
-    stopMotor(); //stop robot motor
-    delay(200);
-    
+    stopMotor(); //stop robot motor    
+    delay(100);
 
     if(LEFT_SIDE > RIGHT_SIDE)
     {
-      dodgeRight(); 
+      turnRight(); 
     }
     else
     {
-      dodgeLeft();
+      turnLeft();
     }
 
     moveForward();
   }
 
+
 }
+
+void turnLeft()
+{
+
+  analogWrite(MOTOR_A1, 150);  
+  analogWrite(MOTOR_A2, 0);
+
+  analogWrite(MOTOR_B1, 150);  
+  analogWrite(MOTOR_B2, 0);
+}
+
+void turnRight()
+{
+  analogWrite(MOTOR_A1, 0);  
+  analogWrite(MOTOR_A2, 150);
+
+  analogWrite(MOTOR_B1, 0);  
+  analogWrite(MOTOR_B2, 150);
+}
+
 
 //function to make robot go forward
 void moveForward() {  
   analogWrite(MOTOR_A1, 0);  
-  analogWrite(MOTOR_A2, 255);
+  analogWrite(MOTOR_A2, MAX_SPEED);
 
-  analogWrite(MOTOR_B1, 255);  
+  analogWrite(MOTOR_B1, MAX_SPEED);  
   analogWrite(MOTOR_B2, 0);
 }
 
 //function to make robot go backwards
 void moveBackwards() {
-  analogWrite(MOTOR_A1, 255);  
+  analogWrite(MOTOR_A1, MAX_SPEED);  
   analogWrite(MOTOR_A2, 0);
 
   analogWrite(MOTOR_B1, 0);  
-  analogWrite(MOTOR_B2, 255);
+  analogWrite(MOTOR_B2, MAX_SPEED);
 }
 
 //function to make robot go left
 void moveLeft(){
-  analogWrite(MOTOR_A1, 255);  
+  analogWrite(MOTOR_A1, MAX_SPEED);  
   analogWrite(MOTOR_A2, 0);
 
-  analogWrite(MOTOR_B1, 255);  
+  analogWrite(MOTOR_B1, MAX_SPEED);  
   analogWrite(MOTOR_B2, 0);
 
 }
 
 void dodgeLeft(){
-  analogWrite(MOTOR_A1, 191);  
+  analogWrite(MOTOR_A1, DODGE_SPEED);  
   analogWrite(MOTOR_A2, 0);
 
-  analogWrite(MOTOR_B1, 191);  
+  analogWrite(MOTOR_B1, DODGE_SPEED);  
   analogWrite(MOTOR_B2, 0);
 
 }
@@ -134,18 +162,18 @@ void dodgeLeft(){
 //function to make robot go right
 void moveRight(){
   analogWrite(MOTOR_A1, 0);  
-  analogWrite(MOTOR_A2, 255);
+  analogWrite(MOTOR_A2, MAX_SPEED);
 
   analogWrite(MOTOR_B1, 0);  
-  analogWrite(MOTOR_B2, 255);
+  analogWrite(MOTOR_B2, MAX_SPEED);
 }
 
 void dodgeRight(){
   analogWrite(MOTOR_A1, 0);  
-  analogWrite(MOTOR_A2, 191);
+  analogWrite(MOTOR_A2, DODGE_SPEED);
 
   analogWrite(MOTOR_B1, 0);  
-  analogWrite(MOTOR_B2, 191);
+  analogWrite(MOTOR_B2, DODGE_SPEED);
 
 }
 
@@ -158,7 +186,64 @@ void stopMotor(){
   analogWrite(MOTOR_B2, 0);
 }
 
+void calibrate()
+{
+    int sensorValues[NUM_SENSORS];
+
+  Serial.print("Sensors: ");
+  //read all values from the snesors
+  for (int i = 0; i < NUM_SENSORS; i++)
+  {
+    sensorValues[i] = analogRead(SENSOR_PINS[i]); //read all IRsensor data
+    Serial.print(sensorValues[i]); //print IRsensor datas
+    Serial.print(" ");
+
+  }
+  Serial.println();
+  Serial.println("---------------------------------");
+  delay(200);
+
+  CALIBRATED_MAX_VALUE = 0;
+  CALIBRATED_MIN_VALUE = 1023;
 
 
+  for (int i = 0; i < NUM_SENSORS; i++)
+  {
+    if (sensorValues[i] > CALIBRATED_MAX_VALUE)
+    {
+      CALIBRATED_MAX_VALUE = sensorValues[i];
+
+
+    }
+
+    if(sensorValues[i] < CALIBRATED_MIN_VALUE)
+    {
+      CALIBRATED_MIN_VALUE = sensorValues[i];
+    }
+
+  }
+
+  AVG_VALUE = (CALIBRATED_MAX_VALUE + CALIBRATED_MIN_VALUE) /2;
+  DEAD_ZONE_W = (AVG_VALUE - 50);
+  DEAD_ZONE_B = (AVG_VALUE + 50);
+
+  
+  Serial.println("Calibrated max value:");
+  Serial.println(CALIBRATED_MAX_VALUE);
+
+  Serial.println("Calibrated min value:");
+  Serial.println(CALIBRATED_MIN_VALUE);
+
+  Serial.println("average value:");
+  Serial.println(AVG_VALUE);
+
+  Serial.println("dead zone white:");
+  Serial.println(DEAD_ZONE_W);
+
+  Serial.println("dead zone black:");
+  Serial.println(DEAD_ZONE_B);
+
+  delay(500);
+}
 
 
