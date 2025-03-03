@@ -80,8 +80,7 @@ void loop() {
   bool obstacleDetected = false;  
   int sensorValues[NUM_SENSORS];
   int position = 0;
-  int total = 0;  
-  int error = 0;
+  int total = 0, error = 0;
 
   Serial.print("Sensors: ");
   //read all values from the sesnos and calculate tota;
@@ -104,28 +103,22 @@ void loop() {
   }
 
   // calculates error for line follow
-  if(total > 0)
-  {
-    error = (position / total) - (NUM_SENSORS / 2); //if line not detected error
-
-  }
-  else {
-
-    position = 0;
-  }
+   error = (total > 0) ? (position / total) - (NUM_SENSORS / 2) : 0;
 
   Serial.println();
   Serial.println("---------------------------------");
   delay(200);
 
   //debug print if obstacle detected or not
-  if (obstacleDetected) 
+  if (!obstacleDetected) 
   {
-  Serial.println("Obstacle Detected");
+  Serial.println("NO Obstacle Detected");
+  adjustMovement(error);
   } 
   else 
   {
-    Serial.println("NO Obstacle Detected");
+    Serial.println("Obstacle Detected");
+    avoidObstacle(sensorValues);
   }
 
 
@@ -134,25 +127,17 @@ void loop() {
   int CENTER = sensorValues[3] + sensorValues[4]; // reads the middle most sensor
   bool MIDDLE_LINE = (sensorValues[3] < DEAD_ZONE_B) && (sensorValues[4] < DEAD_ZONE_B);
 
-
+/*
   // if no obstacle detected adjust left or right motor speeds speeds 
   if (MIDDLE_LINE) {
-    //int speedLeft = MAX_SPEED - (error * 5);
-    //int speedRight = MAX_SPEED + (error * 5);
-    Serial.println("Middle line");
 
-
-    //speedLeft = constrain(speedLeft, 0, MAX_SPEED);
-    //speedRight = constrain(speedRight, 0, MAX_SPEED);
 
     //motor moves forward based on sensor 
-    moveForward();
   } 
   else 
   {
     // Obstacle avoidance logic
     if 
-    
     (sensorValues[0] + sensorValues[1] > sensorValues[6] + sensorValues[7]) 
     {
       slowTurnRight(); //If obstacle is left turn right
@@ -164,43 +149,36 @@ void loop() {
   }
 
   delay(10);
+*/
 
-
-/*
-    for (int i = 0; i < NUM_SENSORS; i++) 
-  {
-      int sensorValue = analogRead(SENSOR_PINS[i]);
-
-      if(sensorValue < DEAD_ZONE_B)
-      {
-        Serial.print("1 "); 
-      }
-      else if (sensorValue > DEAD_ZONE_W)
-      {
-        Serial.print("0 ");
-      }
-  }
-  Serial.println();
-
-  if (!obstacleDetected)
-  {
-    moveForward();
-  }
-  else
-  {
-    if(LEFT_SIDE > RIGHT_SIDE)
-    { 
-      slowTurnRight(); 
-    }
-    else
-    {
-      slowTurnLeft();
-    }
-  }
-
-  */
 }
 
+void adjustMovement(int error) {
+    int speedLeft = MAX_SPEED - (error * 5);
+    int speedRight = MAX_SPEED + (error * 5);
+    speedLeft = constrain(speedLeft, 0, MAX_SPEED);
+    speedRight = constrain(speedRight, 0, MAX_SPEED);
+    drive(speedLeft, speedRight);
+}
+
+void avoidObstacle(int sensorValues[]) 
+{
+    int LEFT_SIDE = sensorValues[0] + sensorValues[1];
+    int RIGHT_SIDE = sensorValues[6] + sensorValues[7];
+    if (LEFT_SIDE > RIGHT_SIDE) {
+        slowTurnRight();
+    } else {
+        slowTurnLeft();
+    }
+}
+
+void drive(int speedLeft, int speedRight) 
+{
+    analogWrite(MOTOR_A1, 0);
+    analogWrite(MOTOR_A2, speedLeft);
+    analogWrite(MOTOR_B1, speedRight);
+    analogWrite(MOTOR_B2, 0);
+}
 
 
 void turnLeft()
@@ -290,9 +268,9 @@ void stopMotor(){
 void slowTurnRight()
 {
   analogWrite(MOTOR_A1, 0);  
-  analogWrite(MOTOR_A2, 150);  
+  analogWrite(MOTOR_A2, 125);  
   analogWrite(MOTOR_B1, 0);  
-  analogWrite(MOTOR_B2, 150);
+  analogWrite(MOTOR_B2, 125);
 }
 
 void slowTurnLeft()
