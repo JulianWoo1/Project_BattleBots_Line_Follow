@@ -1,354 +1,239 @@
-// Motor A1 is pin 10
-const int MOTOR_A1 = 10;
-// Motor A2 is pin 5
-const int MOTOR_A2 = 5;
-// Motor B1 is pin 6
-const int MOTOR_B1 = 6;
-// Motor B2 is pin 9
-const int MOTOR_B2 = 9;
+#include <Adafruit_NeoPixel.h>
+#define DEBUG
 
-const int TRANSMIT_PIN = 11;
-const int SENSOR_PINS[] = {A7, A6, A5, A4, A3, A2, A1, A0}; //define IR Sensor pins
-const int NUM_SENSORS = 8; //amount of sensors
-int AVG_VALUE = 0;
-int CALIBRATED_MAX_VALUE = 0;  //maximum value of the line sensor
-int CALIBRATED_MIN_VALUE = 1023; //minimum value of the line sensor
-int DEAD_ZONE_W = 0; //threshold value for white surface
-int DEAD_ZONE_B = 0; //threshold value for black line
+#define NEO_LED 13
+#define NUM_PIXELS 4
+#define DELAY_TIME 500
 
-const int MAX_SPEED = 200;      // Maximum motor speed
-const int TURN_SPEED = 160;     // Speed during turns
-const int SEARCH_SPEED = 140;   // Speed during search
-const int SEARCH_TIMEOUT = 2000; // Time to search before giving up (ms)
+Adafruit_NeoPixel strip(NUM_PIXELS, NEO_LED, NEO_GRB + NEO_KHZ800);
 
-// Search state tracking
-enum SearchDirection { LEFT, RIGHT };
-SearchDirection lastDirection = LEFT;
-unsigned long lineLastSeen = 0;
-bool searching = false;
-int searchPhase = 0;
+// Motor pins match exactly with the original code
+const int MOTOR_A1 = 10;  // Original left motor pin 1
+const int MOTOR_A2 = 5;   // Original left motor pin 2
+const int MOTOR_B1 = 6;   // Original right motor pin 1
+const int MOTOR_B2 = 9;   // Original right motor pin 2
 
-// Declare lineSensors array globally so debug() can access it
-bool lineSensors[8];
+const int BUTTON_ON = 7;
+const int BUTTON_OFF = 4;
+const int ECHO = 9;
+const int TRIG = 3;
+float duration, distance;
+#define MAX_DISTANCE 200  
+#define NUM_MEASUREMENTS 5 
+const int MOTOR_SENSOR1 = A4;
+const int MOTOR_SENSOR2 = A5;
+int cws1 = 0, cws2 = 0;  
+unsigned long previousMillis = 0;
+const long INTERVAL = 1000;  
+const int SERVO_PIN = 12;
+const int TRANSMIT_PIN = 11;  // Added from old code
 
-void setup() 
-{
-  Serial.begin(9600);
-  //Set all sensor pins as input
-  for(int i = 0; i < NUM_SENSORS; i++) 
-  {
-    pinMode(SENSOR_PINS[i], INPUT);
-  }
-  
-  pinMode(TRANSMIT_PIN, OUTPUT);
-  digitalWrite(TRANSMIT_PIN, HIGH); // Turn on IR emitters
+// Maximum speed from old code
+const int MAX_SPEED = 240;
 
+// Sensor array in the same order as the original code
+const int NUM_SENSORS = 8;
+const int SENSOR_PINS[NUM_SENSORS] = {A7, A6, A5, A4, A3, A2, A1, A0};
+
+int minValues[NUM_SENSORS];
+int maxValues[NUM_SENSORS];
+
+void setup() {
   pinMode(MOTOR_A1, OUTPUT);
   pinMode(MOTOR_A2, OUTPUT);
   pinMode(MOTOR_B1, OUTPUT);
   pinMode(MOTOR_B2, OUTPUT);
-  
-  delay(1000); // Give time for sensors to stabilize
-  calibrate();
+  pinMode(BUTTON_ON, INPUT);
+  pinMode(BUTTON_OFF, INPUT);
+  pinMode(TRIG, OUTPUT);
+  pinMode(ECHO, INPUT);
+  pinMode(MOTOR_SENSOR1, INPUT);
+  pinMode(MOTOR_SENSOR2, INPUT);
+  pinMode(SERVO_PIN, OUTPUT);
+  pinMode(TRANSMIT_PIN, OUTPUT);
+
+  Serial.begin(9600);
+
+  for (int i = 0; i < NUM_SENSORS; i++) {
+    pinMode(SENSOR_PINS[i], INPUT);
+    minValues[i] = 1023;
+    maxValues[i] = 0;
+  }
+
+  Serial.println("Beweeg de robot over de lijn voor kalibratie...");
+  strip.begin();
+  strip.show();
+  stop();  
 }
 
-void loop() 
-{
-  // Read sensor values
-  int lineDetected = 0;
-  
-  // Read all sensors
-  for (int i = 0; i < NUM_SENSORS; i++) 
-  {
-    int sensorValue = analogRead(SENSOR_PINS[i]);
-    
-    // Detect black line (1) or white surface (0)
-    if(sensorValue <= DEAD_ZONE_B) 
-    {
-      lineSensors[i] = 1;  // Black line
-      lineDetected++;
-    } 
-    else 
-    {
-      lineSensors[i] = 0;  // White surface
-    }
-  }
+// Drive function using EXACTLY the same pin assignments and logic as the original code
+void drive(int speedLeft, int speedRight) {
+  speedLeft = constrain(speedLeft, 0, MAX_SPEED);
+  speedRight = constrain(speedRight, 0, MAX_SPEED);
 
-  
-  if (lineDetected == 0) 
-  {
-    // No line detected
-    if (!searching) 
-    {
-      // Just lost the line, start search process
-      searching = true;
-      searchPhase = 0;
-      lineLastSeen = millis();
-      Serial.println("Line lost! Starting search pattern");
-    }
-    
-    // Execute search pattern
-    searchForLine();
-  }
-  else 
-  {
-    // Line found! Reset search variables
-    searching = false;
-    lineLastSeen = millis();
-    
-    // Left side sensors detect line (turn left)
-    if (lineSensors[0] || lineSensors[1] || lineSensors[2]) 
-    {
-      lastDirection = LEFT; // Remember which side we last saw the line
-      turnLeft();
-      Serial.println("Left");
-    }
-    // Right side sensors detect line (turn right)
-    else if (lineSensors[5] || lineSensors[6] || lineSensors[7]) 
-    {
-      lastDirection = RIGHT; // Remember which side we last saw the line
-      turnRight();
-      Serial.println("Right");
-    }
-    // Center sensors detect line (go forward)
-    else if (lineSensors[3] || lineSensors[4]) 
-    {
-      moveForward();
-      Serial.println("forward");
-    }
-  }
-
-  delay(1000);
+  // Use the original code's exact pin assignments for consistent direction
+  analogWrite(MOTOR_A1, 0);
+  analogWrite(MOTOR_A2, speedLeft);
+  analogWrite(MOTOR_B1, speedRight);
+  analogWrite(MOTOR_B2, 0);
 }
 
-// Search pattern to find the line again
-void searchForLine() 
-{
-  unsigned long searchTime = millis() - lineLastSeen;
-  
-  // If we've been searching too long, give up and stop
-  if (searchTime > SEARCH_TIMEOUT) 
-  {
-    stopMotor();
-    Serial.println("Search timeout reached, stopping");
-    return;
-  }
-  
-  switch (searchPhase) 
-  {
-    case 0:
-      // First phase: Short backward movement
-      moveBackward();
-      if (searchTime > 200) 
-      {
-        searchPhase = 1;
-        lineLastSeen = millis();
-        Serial.println("Search phase 1: Backing up completed");
-      }
-      break;
-      
-    case 1:
-      // Second phase: Turn in the direction the line was last seen
-      if (lastDirection == LEFT) 
-      {
-        searchTurnLeft();
-        Serial.println("Search phase 2: Turning left to find line");
-      } 
-      else 
-      {
-        searchTurnRight();
-        Serial.println("Search phase 2: Turning right to find line");
-      }
-      
-      // After some time, if still not found, switch to phase 2
-      if (searchTime > 500) 
-      {
-        searchPhase = 2;
-        lineLastSeen = millis();
-      }
-      break;
-      
-    case 2:
-      // Third phase: Wider search in opposite direction
-      if (lastDirection == LEFT) 
-      {
-        searchTurnRight();
-        Serial.println("Search phase 3: Turning right (wider search)");
-      } 
-      else 
-      {
-        searchTurnLeft();
-        Serial.println("Search phase 3: Turning left (wider search)");
-      }
-      
-      // After a full turn, if still not found, try forward movement
-      if (searchTime > 1000) 
-      {
-        searchPhase = 3;
-        lineLastSeen = millis();
-      }
-      break;
-      
-    case 3:
-      // Fourth phase: Move forward a bit
-      moveForward();
-      Serial.println("Search phase 4: Moving forward to find line");
-      
-      // After some forward movement, go back to first turning direction
-      if (searchTime > 300) 
-      {
-        searchPhase = 1;
-        lineLastSeen = millis();
-        // Invert the last direction to create a zig-zag pattern
-        lastDirection = (lastDirection == LEFT) ? RIGHT : LEFT;
-      }
-      break;
-  }
+// Stop motors with original pin names
+void stop() {
+  analogWrite(MOTOR_A1, 0);
+  analogWrite(MOTOR_A2, 0);
+  analogWrite(MOTOR_B1, 0);
+  analogWrite(MOTOR_B2, 0);
 }
 
-// Turn left
+// Using original pin names for all motor functions
 void turnLeft() {
-  analogWrite(MOTOR_A1, 0);
-  analogWrite(MOTOR_A2, TURN_SPEED);
-  analogWrite(MOTOR_B1, 0);
+  analogWrite(MOTOR_A1, 150);  
+  analogWrite(MOTOR_A2, 0);
+  analogWrite(MOTOR_B1, 150);  
   analogWrite(MOTOR_B2, 0);
 }
 
-// Turn right
 void turnRight() {
-  analogWrite(MOTOR_A1, 0);
-  analogWrite(MOTOR_A2, 0);
-  analogWrite(MOTOR_B1, TURN_SPEED);
-  analogWrite(MOTOR_B2, 0);
+  analogWrite(MOTOR_A1, 0);  
+  analogWrite(MOTOR_A2, 150);
+  analogWrite(MOTOR_B1, 0);  
+  analogWrite(MOTOR_B2, 150);
 }
 
-// Search turn left (slower speed)
-void searchTurnLeft() {
-  analogWrite(MOTOR_A1, 0);
-  analogWrite(MOTOR_A2, SEARCH_SPEED);
-  analogWrite(MOTOR_B1, 0);
-  analogWrite(MOTOR_B2, SEARCH_SPEED/2);
-}
-
-// Search turn right (slower speed)
-void searchTurnRight() {
-  analogWrite(MOTOR_A1, 0);
-  analogWrite(MOTOR_A2, SEARCH_SPEED/2);
-  analogWrite(MOTOR_B1, SEARCH_SPEED);
-  analogWrite(MOTOR_B2, 0);
-}
-
-// Move forward
-void moveForward() {
-  analogWrite(MOTOR_A1, 0);
+void moveForward() {  
+  analogWrite(MOTOR_A1, 0);  
   analogWrite(MOTOR_A2, MAX_SPEED);
-  analogWrite(MOTOR_B1, MAX_SPEED);
+  analogWrite(MOTOR_B1, MAX_SPEED);  
   analogWrite(MOTOR_B2, 0);
 }
 
-// Move backward
-void moveBackward() {
-  analogWrite(MOTOR_A1, MAX_SPEED/2);
+void moveBackwards() {
+  analogWrite(MOTOR_A1, MAX_SPEED);  
   analogWrite(MOTOR_A2, 0);
-  analogWrite(MOTOR_B1, 0);
-  analogWrite(MOTOR_B2, MAX_SPEED/2);
+  analogWrite(MOTOR_B1, 0);  
+  analogWrite(MOTOR_B2, MAX_SPEED);
 }
 
-// Stop motors
-void stopMotor() {
-  analogWrite(MOTOR_A1, 0);
-  analogWrite(MOTOR_A2, 0);
-  analogWrite(MOTOR_B1, 0);
+void slowTurnRight() {
+  analogWrite(MOTOR_A1, 0);  
+  analogWrite(MOTOR_A2, 125);  
+  analogWrite(MOTOR_B1, 0);  
+  analogWrite(MOTOR_B2, 125);
+}
+
+void slowTurnLeft() {
+  analogWrite(MOTOR_A1, 150);  
+  analogWrite(MOTOR_A2, 0);  
+  analogWrite(MOTOR_B1, 150);  
   analogWrite(MOTOR_B2, 0);
 }
 
-void debug() 
-{
-  // Print sensor values every 500ms
-  static unsigned long lastPrintTime = 0;
-  if (millis() - lastPrintTime > 500) 
-  {
-    for (int i = 0; i < NUM_SENSORS; i++) 
-    {
-      Serial.print(lineSensors[i]);
-      Serial.print(" ");
-    }
-    Serial.print(" | Search: ");
-    Serial.print(searching ? "YES" : "NO");
-    Serial.print(" | Phase: ");
-    Serial.print(searchPhase);
-    Serial.print(" | Last direction: ");
-    Serial.println(lastDirection == LEFT ? "LEFT" : "RIGHT");
-    
-    lastPrintTime = millis();
-  }
+// Measure distance
+void measureDistance() {
+  digitalWrite(TRIG, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG, LOW);
+
+  duration = pulseIn(ECHO, HIGH);
+  distance = (duration * 0.0343) / 2;
+  Serial.print("Distance: ");
+  Serial.println(distance);
 }
 
-// Calibration function
+// Read wheel sensor pulses
+void readMotorSensors() {
+  cws1 = pulseIn(MOTOR_SENSOR1, HIGH);
+  cws2 = pulseIn(MOTOR_SENSOR2, HIGH);
+}
 
-void calibrate() 
-{
-  Serial.println("Starting automatic calibration...");
-  Serial.println("Move the robot over both the line and surface for 5 seconds");
+int getPulseDifference() {
+  unsigned long currentMillis = millis();
   
-  // Initialize values
-  CALIBRATED_MAX_VALUE = 0;
-  CALIBRATED_MIN_VALUE = 1023;
-  
-  // Set calibration duration (5 seconds)
-  unsigned long startTime = millis();
-  unsigned long calibrationDuration = 4000; // 4 seconds
-  
-  // Sample values continuously during calibration period
-  while (millis() - startTime < calibrationDuration) 
-  {
-    for (int i = 0; i < NUM_SENSORS; i++) 
-    {
-      int sensorValue = analogRead(SENSOR_PINS[i]);
-      
-      // Update max and min values
-      if (sensorValue > CALIBRATED_MAX_VALUE) 
-      {
-        CALIBRATED_MAX_VALUE = sensorValue;
-      }
-      if (sensorValue < CALIBRATED_MIN_VALUE) 
-      {
-        CALIBRATED_MIN_VALUE = sensorValue;
-      }
-    }
-    
-    // Short delay between readings
-    delay(10);
-    
-    // Display progress every second
-    if ((millis() - startTime) % 1000 < 20) 
-    {
-      Serial.print("Calibrating... ");
-      Serial.print((millis() - startTime) / 1000);
-      Serial.println(" seconds elapsed");
-    }
+  if (currentMillis - previousMillis > INTERVAL) {
+    previousMillis = currentMillis;
+    readMotorSensors();
+
+    int pulseDifference = cws1 - cws2;
+    pulseDifference /= 1200;
+
+    Serial.print("Pulse Difference: ");
+    Serial.println(pulseDifference);
+    return pulseDifference;
   }
+  return 0;
+}
+
+// Store last known direction: -1 (left), 1 (right), 0 (center)
+int lastDirection = 0;
+
+void loop() {
+  int sensorReadings[NUM_SENSORS];
+  bool blackDetected = false;
+
+  for (int i = 0; i < NUM_SENSORS; i++) {
+      sensorReadings[i] = analogRead(SENSOR_PINS[i]);
+
+      minValues[i] = min(sensorReadings[i], minValues[i]);
+      maxValues[i] = max(sensorReadings[i], maxValues[i]);
+  }
+
+  int result = 0;
+  for (int j = 0; j < NUM_SENSORS; j++) {
+      result += (minValues[j] + maxValues[j]) / 2;
+  }
+  result /= NUM_SENSORS;
   
-  // Calculate thresholds
-  AVG_VALUE = (CALIBRATED_MAX_VALUE + CALIBRATED_MIN_VALUE) / 2;
-  DEAD_ZONE_W = AVG_VALUE + (CALIBRATED_MAX_VALUE - AVG_VALUE) * 0.2;
-  DEAD_ZONE_B = AVG_VALUE - (AVG_VALUE - CALIBRATED_MIN_VALUE) * 0.2;
-  
-  Serial.println("----------------------------------------------------");
-  Serial.println("Calibration Results:");
-  Serial.println("----------------------------------------------------");
-  Serial.print("Maximum sensor value (white surface): ");
-  Serial.println(CALIBRATED_MAX_VALUE);
-  Serial.print("Minimum sensor value (black line): ");
-  Serial.println(CALIBRATED_MIN_VALUE);
-  Serial.print("Average value: ");
-  Serial.println(AVG_VALUE);
-  Serial.print("White threshold: ");
-  Serial.println(DEAD_ZONE_W);
-  Serial.print("Black threshold: ");
-  Serial.println(DEAD_ZONE_B);
-  Serial.println("----------------------------------------------------");
-  Serial.println("Calibration complete. Ready to follow line.");
-  Serial.println("----------------------------------------------------");
-  delay(1000);
+  int DEADZONE_LOW = result - 50;
+  int DEADZONE_HIGH = result + 50;
+
+  // Detect if any sensor sees black
+  for (int i = 0; i < NUM_SENSORS; i++) {
+      if (sensorReadings[i] <= DEADZONE_LOW) { 
+          blackDetected = true;
+          break;
+      }
+  }
+
+  // Line Following Logic
+  if (sensorReadings[4] >= DEADZONE_HIGH && sensorReadings[5] >= DEADZONE_HIGH) {
+      drive(255, 255);  // Move forward
+      lastDirection = 0;  // Reset direction when moving straight
+  }
+  else if (sensorReadings[5] >= DEADZONE_HIGH && sensorReadings[6] >= DEADZONE_HIGH) {
+      drive(255, 170);  // Slight left
+      lastDirection = -1;  // Remember last seen black was on the left
+  } 
+  else if (sensorReadings[6] >= DEADZONE_HIGH && sensorReadings[7] >= DEADZONE_HIGH) {
+      drive(255, 10);   // More left
+      lastDirection = -1;
+  }  
+  else if (sensorReadings[3] >= DEADZONE_HIGH && sensorReadings[4] >= DEADZONE_HIGH) {
+      drive(170, 255);  // Slight right
+      lastDirection = 1;  // Remember last seen black was on the right
+  }  
+  else if (sensorReadings[2] >= DEADZONE_HIGH && sensorReadings[3] >= DEADZONE_HIGH) {
+      drive(60, 255);   // More right
+      lastDirection = 1;
+  }  
+  else if (sensorReadings[1] >= DEADZONE_HIGH && sensorReadings[2] >= DEADZONE_HIGH) {
+      drive(10, 255);   // Sharp right
+      lastDirection = 1;
+  }  
+  else {
+      // If line is lost, steer towards last known direction
+      if (lastDirection == -1) {
+          drive(255, 0);  // Turn left to search
+      } 
+      else if (lastDirection == 1) {
+          drive(0, 255);  // Turn right to search
+      } 
+      else {
+          drive(0, 0);  // Stop if no memory
+      }
+  }
+
+  delay(50);  
 }
