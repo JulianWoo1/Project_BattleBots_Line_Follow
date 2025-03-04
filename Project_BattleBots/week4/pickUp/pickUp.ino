@@ -1,129 +1,81 @@
-const int servoPin = 3; 
+#include <Adafruit_NeoPixel.h>
+#define DEBUG
+
+#define NEO_PIXEL_PIN 8 //Attached to digital pin 8
+#define NUM_PIXELS 4 // Number of NeoPixels
+
+Adafruit_NeoPixel pixels(NUM_PIXELS, NEO_PIXEL_PIN, NEO_GRB + NEO_KHZ800);
+
+const int SERVO_PIN = 3; 
 
 // Motor A1 is pin 10
-const int a1 = 10;
-
-// Motor B1 is pin 5
-const int a2 = 5;
-
+const int MOTOR_A1 = 10;
+// Motor A2 is pin 5
+const int MOTOR_A2 = 5;
 // Motor B1 is pin 6
-const int b1 = 6;
-
+const int MOTOR_B1 = 6;
 // Motor B2 is pin 9
-const int b2 = 9;
+const int MOTOR_B2 = 9;
+
+const int MAX_SPEED = 240;
+
 
 //trigger distance of obstacle in cm
-const int obstacleThreshold = 10;  
+const int OBSTACLE_THRESHOLD = 15;  
+
+const int NEW_OBSTACLE_THRESHOLD = 7;  
+
 
 //yellow wire is trigger
-const int trigPin = 13;
+const int TRIG_PIN = 13;
 
 //green wire is echo 
-const int echoPin = 12;
+const int ECHO_PIN = 12;
+
+//range how the gripper open and closes. 360 degrees
+int OPENGRIP_VALUE = 120;
+int CLOSEGRIP_VALUE = 50;
 
 void generatePulse(int angle){
   int pulseWidth = map(angle, 0, 180, 544, 2400);
-  digitalWrite(servoPin, HIGH);
+  digitalWrite(SERVO_PIN, HIGH);
   delayMicroseconds(pulseWidth);
-  digitalWrite(servoPin, LOW);
+  digitalWrite(SERVO_PIN, LOW);
 }
 
 void setup() {
+  pixels.begin(); // INITIALIZE NeoPixel strip object (REQUIRED)
+
   // put your setup code here, to run once:
   // initialize serial communication:
-  Serial.begin(115200);
+  Serial.begin(9600);
 
   //motor A have output
-  pinMode(a1, OUTPUT);
-  pinMode(a2, OUTPUT);
+  pinMode(MOTOR_A1, OUTPUT);
+  pinMode(MOTOR_A2, OUTPUT);
 
   //motor B have output
-  pinMode(b1, OUTPUT);
-  pinMode(b2, OUTPUT);
+  pinMode(MOTOR_B1, OUTPUT);
+  pinMode(MOTOR_B2, OUTPUT);
 
   //input echo
-  pinMode(echoPin, INPUT);
+  pinMode(ECHO_PIN, INPUT);
   //output trigger
-  pinMode(trigPin, OUTPUT);
-  pinMode(servoPin, OUTPUT);
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(SERVO_PIN, OUTPUT);
 
 }
 
-void loop() {
+void loop() 
+{
 
-pickUp();
+  pickUp();
   
 
 }
 
-void openGrip(){
-  generatePulse(120);
-  delay(1000);
-}
-
-void closeGrip()
+void pickUp()
 {
-  generatePulse(40);
-  delay(1000);
-}
-
-void maxForward() {  
-  analogWrite(a1, 0);  
-  analogWrite(a2, 255);
-
-  analogWrite(b1, 255);  
-  analogWrite(b2, 0);
-
-}
-
-void smallForward(){
-  analogWrite(a1, 0);  
-  analogWrite(a2, 180);
-
-  analogWrite(b1, 180);  
-  analogWrite(b2, 0);
-
-}
-
-//function to make robot go backwards
-void maxBackwards() {
-  analogWrite(a1, 255);  
-  analogWrite(a2, 0);
-
-  analogWrite(b1, 0);  
-  analogWrite(b2, 255);
-}
-
-//function to make robot go left
-void maxLeft(){
-  analogWrite(a1, 255);  
-  analogWrite(a2, 0);
-
-  analogWrite(b1, 255);  
-  analogWrite(b2, 0);
-
-
-}
-
-//function to make robot go right
-void maxRight(){
-  analogWrite(a1, 0);  
-  analogWrite(a2, 255);
-
-  analogWrite(b1, 0);  
-  analogWrite(b2, 255);
-}
-
-//function to make robot stop
-void stopMotor(){
-  analogWrite(a1, 0);  
-  analogWrite(a2, 0);
-
-  analogWrite(b1, 0);  
-  analogWrite(b2, 0);
-}
-
-void pickUp (){
   // establish variables for duration of the ping, and the distance result
   // in inches and centimeters:
   long duration, inches, cm;
@@ -131,16 +83,16 @@ void pickUp (){
 
   // The PING))) is triggered by a HIGH pulse of 2 or more microseconds.
   // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
-  digitalWrite(trigPin, LOW);
+  digitalWrite(TRIG_PIN, LOW);
   delayMicroseconds(2);
-  digitalWrite(trigPin, HIGH);
+  digitalWrite(TRIG_PIN, HIGH);
   delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
+  digitalWrite(TRIG_PIN, LOW);
 
   // The same pin is used to read the signal from the PING))): a HIGH pulse
   // whose duration is the time (in microseconds) from the sending of the ping
   // to the reception of its echo off of an object.
-  duration = pulseIn(echoPin, HIGH, 20000);
+  duration = pulseIn(ECHO_PIN, HIGH, 20000);
 
   // convert the time into a distance
   inches = microsecondsToInches(duration);
@@ -170,46 +122,161 @@ void pickUp (){
       Serial.print("old deleted");
       Serial.println();
   }
+  
+  if (cm <= OBSTACLE_THRESHOLD){
+    openGrip();
+    delay(1000);
 
-  maxForward();
-
-
-  if (cm <= obstacleThreshold){
-
-    stopMotor();
-    delay(300); // When robot sees obstacle robot motor stops
-
-    smallForward();
+    closeGrip();
     delay(1000);
 
     openGrip();
-    delay(300);
+    delay(1000);
 
-    closeGrip();
-    delay(300);
-
-    maxBackwards();
-    delay(300);
+    moveForward();
+    delay(1000);
 
 
-    }
+
+  }
 
 }
 
-long microsecondsToInches(long microseconds) {
-  // According to Parallax's datasheet for the PING))), there are 73.746
-  // microseconds per inch (i.e. sound travels at 1130 feet per second).
-  // This gives the distance travelled by the ping, outbound and return,
-  // so we divide by 2 to get the distance of the obstacle.
-  // See: https://www.parallax.com/package/ping-ultrasonic-distance-sensor-downloads/
-  return microseconds / 74 / 2;
+
+
+void openGrip(){
+  generatePulse(OPENGRIP_VALUE);
+  delay(300);
 }
 
-long microsecondsToCentimeters(long microseconds) {
-  // The speed of sound is 340 m/s or 29 microseconds per centimeter.
-  // The ping travels out and back, so to find the distance of the object we
-  // take half of the distance travelled.
-  return microseconds / 29 / 2;
+void closeGrip()
+{
+  generatePulse(CLOSEGRIP_VALUE);
+  delay(300);
+}
 
+void moveForward() {  
+  analogWrite(MOTOR_A1, 0);  
+  analogWrite(MOTOR_A2, MAX_SPEED);
+
+  analogWrite(MOTOR_B1, MAX_SPEED);  
+  analogWrite(MOTOR_B2, 0);
+
+}
+
+//function to make robot go backwards
+void moveBackwards() {
+  brakeLight();
+  analogWrite(MOTOR_A1, MAX_SPEED);  
+  analogWrite(MOTOR_A2, 0);
+
+  analogWrite(MOTOR_B1, 0);  
+  analogWrite(MOTOR_B2, MAX_SPEED);
+}
+
+//function to make robot go left
+void moveLeft(){
+  leftSignal();
+  analogWrite(MOTOR_A1, MAX_SPEED);  
+  analogWrite(MOTOR_A2, 0);
+
+  analogWrite(MOTOR_B1, MAX_SPEED);  
+  analogWrite(MOTOR_B2, 0);
+
+
+}
+
+//function to make robot go right
+void moveRight(){
+  rightSignal();
+  analogWrite(MOTOR_A1, 0);  
+  analogWrite(MOTOR_A2, MAX_SPEED);
+
+  analogWrite(MOTOR_B1, 0);  
+  analogWrite(MOTOR_B2, MAX_SPEED);
+}
+
+//function to make robot stop
+void stopMotor(){
+  brakeLight();
+  analogWrite(MOTOR_A1, 0);  
+  analogWrite(MOTOR_A1, 0);
+
+  analogWrite(MOTOR_B1, 0);  
+  analogWrite(MOTOR_B2, 0);
+}
+
+
+  long microsecondsToInches(long microseconds) {
+    // According to Parallax's datasheet for the PING))), there are 73.746
+    // microseconds per inch (i.e. sound travels at 1130 feet per second).
+    // This gives the distance travelled by the ping, outbound and return,
+    // so we divide by 2 to get the distance of the obstacle.
+    // See: https://www.parallax.com/package/ping-ultrasonic-distance-sensor-downloads/
+    return microseconds / 74 / 2;
+  }
+
+  long microsecondsToCentimeters(long microseconds) {
+    // The speed of sound is 340 m/s or 29 microseconds per centimeter.
+    // The ping travels out and back, so to find the distance of the object we
+    // take half of the distance travelled.
+    return microseconds / 29 / 2;
+
+  }
+
+
+  void brakeLight() {
+  pixels.clear(); // Set all pixel colors to 'off'
+  pixels.setPixelColor(0, pixels.Color(0, 150, 0)); //Set left rear color to orange (G,R,B)
+  pixels.setPixelColor(1, pixels.Color(0, 150, 0)); //Set right rear color to orange (G,R,B)
+  pixels.show();   // Send the updated pixel colors to the hardware.
+}
+
+void rightSignal() {
+    pixels.clear(); // Set all pixel colors to 'off'
+    pixels.setPixelColor(1, pixels.Color(70, 255, 0)); //Set right rear color to orange (G,R,B)
+    pixels.setPixelColor(2, pixels.Color(70, 255, 0)); //Set right front color to orange (G,R,B)
+    pixels.show();   // Send the updated pixel colors to the hardware.
+
+    delay(500); // Wait for the specified time
+
+    // Turn the pixels off
+    pixels.clear(); // Set all pixel colors to 'off'
+    pixels.show();   // Send the updated pixel colors to the hardware.
+
+    delay(500); // Wait for the specified time
+}
+
+void leftSignal() {
+    pixels.clear(); // Set all pixel colors to 'off'
+    pixels.setPixelColor(0, pixels.Color(70, 255, 0)); //Set left rear color to orange (G,R,B)
+    pixels.setPixelColor(3, pixels.Color(70, 255, 0)); //Set left front color to orange (G,R,B)
+    pixels.show();   // Send the updated pixel colors to the hardware.
+
+    delay(500); // Wait for the specified time
+
+    // Turn the pixels off
+    pixels.clear(); // Set all pixel colors to 'off'
+    pixels.show();   // Send the updated pixel colors to the hardware.
+
+    delay(500); // Wait for the specified time
+}
+
+void alarm() {
+  pixels.clear(); // Set all pixel colors to 'off'
+
+  // Set all LEDs to red
+  pixels.setPixelColor(0, pixels.Color(0, 255, 0));
+  pixels.setPixelColor(1, pixels.Color(0, 255, 0));
+  pixels.setPixelColor(2, pixels.Color(0, 255, 0));
+  pixels.setPixelColor(3, pixels.Color(0, 255, 0));
+  pixels.show(); // Send the updated pixel colors to the hardware.
+
+  delay(500); // Wait for the specified time
+
+  pixels.clear(); // Set all pixel colors to 'off'
+  pixels.show(); // Send the updated pixel colors to the hardware.
+
+  delay(500); // Wait for the specified time
 }
 

@@ -12,17 +12,10 @@ const int MOTOR_A2 = 5;   // Left motor pin 2
 const int MOTOR_B1 = 6;   // Right motor pin 1
 const int MOTOR_B2 = 9;   // Right motor pin 2
 
-const int BUTTON_ON = 7; 
-const int BUTTON_OFF = 4;
-const int ECHO = 9;
-const int TRIG = 3;
-float duration, distance;
 const int MOTOR_SENSOR1 = A4;
 const int MOTOR_SENSOR2 = A5;
-int cws1 = 0, cws2 = 0;  
-unsigned long previousMillis = 0;
-const long INTERVAL = 1000; // 1 second interval
-const int SERVO_PIN = 12;
+
+
 const int TRANSMIT_PIN = 11; 
 
 const int MAX_SPEED = 240;
@@ -38,13 +31,8 @@ void setup() {
   pinMode(MOTOR_A2, OUTPUT);
   pinMode(MOTOR_B1, OUTPUT);
   pinMode(MOTOR_B2, OUTPUT);
-  pinMode(BUTTON_ON, INPUT);
-  pinMode(BUTTON_OFF, INPUT);
-  pinMode(TRIG, OUTPUT);
-  pinMode(ECHO, INPUT);
   pinMode(MOTOR_SENSOR1, INPUT);
   pinMode(MOTOR_SENSOR2, INPUT);
-  pinMode(SERVO_PIN, OUTPUT);
   pinMode(TRANSMIT_PIN, OUTPUT);
 
   pixels.begin();
@@ -119,42 +107,7 @@ void slowTurnLeft() {
   analogWrite(MOTOR_B2, 0);
 }
 
-// Measure distance
-void measureDistance() {
-  digitalWrite(TRIG, LOW);
-  delayMicroseconds(2);
-  digitalWrite(TRIG, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(TRIG, LOW);
 
-  duration = pulseIn(ECHO, HIGH);
-  distance = (duration * 0.0343) / 2;
-  Serial.print("Distance: ");
-  Serial.println(distance);
-}
-
-// Read wheel sensor pulses
-void readMotorSensors() {
-  cws1 = pulseIn(MOTOR_SENSOR1, HIGH);
-  cws2 = pulseIn(MOTOR_SENSOR2, HIGH);
-}
-
-int getPulseDifference() {
-  unsigned long currentMillis = millis();
-  
-  if (currentMillis - previousMillis > INTERVAL) {
-    previousMillis = currentMillis;
-    readMotorSensors();
-
-    int pulseDifference = cws1 - cws2;
-    pulseDifference /= 1200;
-
-    Serial.print("Pulse Difference: ");
-    Serial.println(pulseDifference);
-    return pulseDifference;
-  }
-  return 0;
-}
 
 // Store last known direction: -1 (left), 1 (right), 0 (center)
 int lastDirection = 0;
@@ -193,29 +146,29 @@ void loop() {
       lastDirection = 0;  // Reset direction when moving straight
   }
   else if (sensorReadings[5] >= DEADZONE_HIGH && sensorReadings[6] >= DEADZONE_HIGH) {
-      drive(255, 170);  // Slight left
+      drive(255, 170);  // Slight right
       lastDirection = -1;  // Remember last seen black was on the left
-      leftSignal();
+      rightSignal();
   } 
   else if (sensorReadings[6] >= DEADZONE_HIGH && sensorReadings[7] >= DEADZONE_HIGH) {
-      drive(255, 10);   // More left
+      drive(255, 10);   // More right
       lastDirection = -1;
-      leftSignal();
+      rightSignal();
   }  
   else if (sensorReadings[3] >= DEADZONE_HIGH && sensorReadings[4] >= DEADZONE_HIGH) {
-      drive(170, 255);  // Slight right
+      drive(170, 255);  // Slight left
       lastDirection = 1;  // Remember last seen black was on the right
-      rightSignal();
+      leftSignal();
   }  
   else if (sensorReadings[2] >= DEADZONE_HIGH && sensorReadings[3] >= DEADZONE_HIGH) {
-      drive(60, 255);   // More right
+      drive(60, 255);   // More left
       lastDirection = 1;
-      rightSignal();
+      leftSignal();
   }  
   else if (sensorReadings[1] >= DEADZONE_HIGH && sensorReadings[2] >= DEADZONE_HIGH) {
-      drive(10, 255);   // Sharp right
+      drive(10, 255);   // Sharp left
       lastDirection = 1;
-      rightSignal();
+      leftSignal();
   }  
   else {
       // If line is lost, steer towards last known direction
@@ -247,13 +200,6 @@ void rightSignal() {
     pixels.setPixelColor(2, pixels.Color(70, 255, 0)); //Set right front color to orange (G,R,B)
     pixels.show();   // Send the updated pixel colors to the hardware.
 
-    delay(500); // Wait for the specified time
-
-    // Turn the pixels off
-    pixels.clear(); // Set all pixel colors to 'off'
-    pixels.show();   // Send the updated pixel colors to the hardware.
-
-    delay(500); // Wait for the specified time
 }
 
 void leftSignal() {
@@ -262,13 +208,7 @@ void leftSignal() {
     pixels.setPixelColor(3, pixels.Color(70, 255, 0)); //Set left front color to orange (G,R,B)
     pixels.show();   // Send the updated pixel colors to the hardware.
 
-    delay(500); // Wait for the specified time
 
-    // Turn the pixels off
-    pixels.clear(); // Set all pixel colors to 'off'
-    pixels.show();   // Send the updated pixel colors to the hardware.
-
-    delay(500); // Wait for the specified time
 }
 
 void alarm() {
@@ -281,10 +221,4 @@ void alarm() {
   pixels.setPixelColor(3, pixels.Color(0, 255, 0));
   pixels.show(); // Send the updated pixel colors to the hardware.
 
-  delay(500); // Wait for the specified time
-
-  pixels.clear(); // Set all pixel colors to 'off'
-  pixels.show(); // Send the updated pixel colors to the hardware.
-
-  delay(500); // Wait for the specified time
 }
