@@ -153,7 +153,8 @@ void loop() {
 
 }
 
-void adjustMovement(int error) {
+void adjustMovement(int error) 
+{
     int speedLeft = MAX_SPEED - (error * 5);
     int speedRight = MAX_SPEED + (error * 5);
     speedLeft = constrain(speedLeft, 0, MAX_SPEED);
