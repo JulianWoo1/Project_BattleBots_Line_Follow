@@ -68,7 +68,7 @@ void setup() {
 
 void loop() 
 {
-
+  
   pickUp();
   
 
@@ -122,8 +122,14 @@ void pickUp()
       Serial.print("old deleted");
       Serial.println();
   }
+
+  moveForward();
   
   if (cm <= OBSTACLE_THRESHOLD){
+
+    stopMotor();
+    delay(1000);
+
     openGrip();
     delay(1000);
 
@@ -133,7 +139,16 @@ void pickUp()
     openGrip();
     delay(1000);
 
+    closeGrip();
+    delay(1000);
+
     moveForward();
+    delay(500);
+
+    stopMotor();
+    delay(1000);
+
+    openGrip();
     delay(1000);
 
 
@@ -182,8 +197,6 @@ void moveLeft(){
 
   analogWrite(MOTOR_B1, MAX_SPEED);  
   analogWrite(MOTOR_B2, 0);
-
-
 }
 
 //function to make robot go right
@@ -200,7 +213,7 @@ void moveRight(){
 void stopMotor(){
   brakeLight();
   analogWrite(MOTOR_A1, 0);  
-  analogWrite(MOTOR_A1, 0);
+  analogWrite(MOTOR_A2, 0);
 
   analogWrite(MOTOR_B1, 0);  
   analogWrite(MOTOR_B2, 0);
@@ -260,23 +273,5 @@ void leftSignal() {
     pixels.show();   // Send the updated pixel colors to the hardware.
 
     delay(500); // Wait for the specified time
-}
-
-void alarm() {
-  pixels.clear(); // Set all pixel colors to 'off'
-
-  // Set all LEDs to red
-  pixels.setPixelColor(0, pixels.Color(0, 255, 0));
-  pixels.setPixelColor(1, pixels.Color(0, 255, 0));
-  pixels.setPixelColor(2, pixels.Color(0, 255, 0));
-  pixels.setPixelColor(3, pixels.Color(0, 255, 0));
-  pixels.show(); // Send the updated pixel colors to the hardware.
-
-  delay(500); // Wait for the specified time
-
-  pixels.clear(); // Set all pixel colors to 'off'
-  pixels.show(); // Send the updated pixel colors to the hardware.
-
-  delay(500); // Wait for the specified time
 }
 
