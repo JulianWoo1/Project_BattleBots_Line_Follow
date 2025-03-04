@@ -1,37 +1,32 @@
 #include <Adafruit_NeoPixel.h>
 #define DEBUG
 
-#define NEO_LED 13
-#define NUM_PIXELS 4
+#define NEO_PIXEL_PIN 8 //Attached to digital pin 8
+#define NUM_PIXELS 4 // Number of NeoPixels
 #define DELAY_TIME 500
 
-Adafruit_NeoPixel strip(NUM_PIXELS, NEO_LED, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel pixels(NUM_PIXELS, NEO_PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
-// Motor pins match exactly with the original code
-const int MOTOR_A1 = 10;  // Original left motor pin 1
-const int MOTOR_A2 = 5;   // Original left motor pin 2
-const int MOTOR_B1 = 6;   // Original right motor pin 1
-const int MOTOR_B2 = 9;   // Original right motor pin 2
+const int MOTOR_A1 = 10;  // Left motor pin 1
+const int MOTOR_A2 = 5;   // Left motor pin 2
+const int MOTOR_B1 = 6;   // Right motor pin 1
+const int MOTOR_B2 = 9;   // Right motor pin 2
 
-const int BUTTON_ON = 7;
+const int BUTTON_ON = 7; 
 const int BUTTON_OFF = 4;
 const int ECHO = 9;
 const int TRIG = 3;
 float duration, distance;
-#define MAX_DISTANCE 200  
-#define NUM_MEASUREMENTS 5 
 const int MOTOR_SENSOR1 = A4;
 const int MOTOR_SENSOR2 = A5;
 int cws1 = 0, cws2 = 0;  
 unsigned long previousMillis = 0;
-const long INTERVAL = 1000;  
+const long INTERVAL = 1000; // 1 second interval
 const int SERVO_PIN = 12;
-const int TRANSMIT_PIN = 11;  // Added from old code
+const int TRANSMIT_PIN = 11; 
 
-// Maximum speed from old code
 const int MAX_SPEED = 240;
 
-// Sensor array in the same order as the original code
 const int NUM_SENSORS = 8;
 const int SENSOR_PINS[NUM_SENSORS] = {A7, A6, A5, A4, A3, A2, A1, A0};
 
@@ -52,6 +47,7 @@ void setup() {
   pinMode(SERVO_PIN, OUTPUT);
   pinMode(TRANSMIT_PIN, OUTPUT);
 
+  pixels.begin();
   Serial.begin(9600);
 
   for (int i = 0; i < NUM_SENSORS; i++) {
@@ -61,24 +57,19 @@ void setup() {
   }
 
   Serial.println("Beweeg de robot over de lijn voor kalibratie...");
-  strip.begin();
-  strip.show();
   stop();  
 }
 
-// Drive function using EXACTLY the same pin assignments and logic as the original code
 void drive(int speedLeft, int speedRight) {
   speedLeft = constrain(speedLeft, 0, MAX_SPEED);
   speedRight = constrain(speedRight, 0, MAX_SPEED);
 
-  // Use the original code's exact pin assignments for consistent direction
   analogWrite(MOTOR_A1, 0);
   analogWrite(MOTOR_A2, speedLeft);
   analogWrite(MOTOR_B1, speedRight);
   analogWrite(MOTOR_B2, 0);
 }
 
-// Stop motors with original pin names
 void stop() {
   analogWrite(MOTOR_A1, 0);
   analogWrite(MOTOR_A2, 0);
@@ -86,7 +77,6 @@ void stop() {
   analogWrite(MOTOR_B2, 0);
 }
 
-// Using original pin names for all motor functions
 void turnLeft() {
   analogWrite(MOTOR_A1, 150);  
   analogWrite(MOTOR_A2, 0);
@@ -205,22 +195,27 @@ void loop() {
   else if (sensorReadings[5] >= DEADZONE_HIGH && sensorReadings[6] >= DEADZONE_HIGH) {
       drive(255, 170);  // Slight left
       lastDirection = -1;  // Remember last seen black was on the left
+      leftSignal();
   } 
   else if (sensorReadings[6] >= DEADZONE_HIGH && sensorReadings[7] >= DEADZONE_HIGH) {
       drive(255, 10);   // More left
       lastDirection = -1;
+      leftSignal();
   }  
   else if (sensorReadings[3] >= DEADZONE_HIGH && sensorReadings[4] >= DEADZONE_HIGH) {
       drive(170, 255);  // Slight right
       lastDirection = 1;  // Remember last seen black was on the right
+      rightSignal();
   }  
   else if (sensorReadings[2] >= DEADZONE_HIGH && sensorReadings[3] >= DEADZONE_HIGH) {
       drive(60, 255);   // More right
       lastDirection = 1;
+      rightSignal();
   }  
   else if (sensorReadings[1] >= DEADZONE_HIGH && sensorReadings[2] >= DEADZONE_HIGH) {
       drive(10, 255);   // Sharp right
       lastDirection = 1;
+      rightSignal();
   }  
   else {
       // If line is lost, steer towards last known direction
@@ -233,7 +228,63 @@ void loop() {
       else {
           drive(0, 0);  // Stop if no memory
       }
+      alarm();
   }
 
   delay(50);  
+}
+
+void brakeLight() {
+  pixels.clear(); // Set all pixel colors to 'off'
+  pixels.setPixelColor(0, pixels.Color(0, 150, 0)); //Set left rear color to orange (G,R,B)
+  pixels.setPixelColor(1, pixels.Color(0, 150, 0)); //Set right rear color to orange (G,R,B)
+  pixels.show();   // Send the updated pixel colors to the hardware.
+}
+
+void rightSignal() {
+    pixels.clear(); // Set all pixel colors to 'off'
+    pixels.setPixelColor(1, pixels.Color(70, 255, 0)); //Set right rear color to orange (G,R,B)
+    pixels.setPixelColor(2, pixels.Color(70, 255, 0)); //Set right front color to orange (G,R,B)
+    pixels.show();   // Send the updated pixel colors to the hardware.
+
+    delay(500); // Wait for the specified time
+
+    // Turn the pixels off
+    pixels.clear(); // Set all pixel colors to 'off'
+    pixels.show();   // Send the updated pixel colors to the hardware.
+
+    delay(500); // Wait for the specified time
+}
+
+void leftSignal() {
+    pixels.clear(); // Set all pixel colors to 'off'
+    pixels.setPixelColor(0, pixels.Color(70, 255, 0)); //Set left rear color to orange (G,R,B)
+    pixels.setPixelColor(3, pixels.Color(70, 255, 0)); //Set left front color to orange (G,R,B)
+    pixels.show();   // Send the updated pixel colors to the hardware.
+
+    delay(500); // Wait for the specified time
+
+    // Turn the pixels off
+    pixels.clear(); // Set all pixel colors to 'off'
+    pixels.show();   // Send the updated pixel colors to the hardware.
+
+    delay(500); // Wait for the specified time
+}
+
+void alarm() {
+  pixels.clear(); // Set all pixel colors to 'off'
+
+  // Set all LEDs to red
+  pixels.setPixelColor(0, pixels.Color(0, 255, 0));
+  pixels.setPixelColor(1, pixels.Color(0, 255, 0));
+  pixels.setPixelColor(2, pixels.Color(0, 255, 0));
+  pixels.setPixelColor(3, pixels.Color(0, 255, 0));
+  pixels.show(); // Send the updated pixel colors to the hardware.
+
+  delay(500); // Wait for the specified time
+
+  pixels.clear(); // Set all pixel colors to 'off'
+  pixels.show(); // Send the updated pixel colors to the hardware.
+
+  delay(500); // Wait for the specified time
 }
