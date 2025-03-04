@@ -3,7 +3,6 @@
 
 #define NEO_PIXEL_PIN 8 //Attached to digital pin 8
 #define NUM_PIXELS 4 // Number of NeoPixels
-#define DELAY_TIME 500
 
 Adafruit_NeoPixel pixels(NUM_PIXELS, NEO_PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 

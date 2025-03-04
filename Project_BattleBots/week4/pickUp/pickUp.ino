@@ -19,22 +19,18 @@ const int MOTOR_B2 = 9;
 
 const int MAX_SPEED = 240;
 
-
-//trigger distance of obstacle in cm
-const int OBSTACLE_THRESHOLD = 15;  
-
-const int NEW_OBSTACLE_THRESHOLD = 7;  
-
-
-//yellow wire is trigger
-const int TRIG_PIN = 13;
-
-//green wire is echo 
-const int ECHO_PIN = 12;
-
 //range how the gripper open and closes. 360 degrees
 int OPENGRIP_VALUE = 120;
 int CLOSEGRIP_VALUE = 50;
+
+unsigned long previousMillis = 0;
+
+const long interval = 2000; //time between actions
+
+// establish variables for duration of the ping, and the distance result
+// in inches and centimeters:
+long duration, inches, cm;
+int readCount = 0; //counts the ammount of messages
 
 void generatePulse(int angle){
   int pulseWidth = map(angle, 0, 180, 544, 2400);
@@ -43,7 +39,8 @@ void generatePulse(int angle){
   digitalWrite(SERVO_PIN, LOW);
 }
 
-void setup() {
+void setup() 
+{
   pixels.begin(); // INITIALIZE NeoPixel strip object (REQUIRED)
 
   // put your setup code here, to run once:
@@ -58,106 +55,54 @@ void setup() {
   pinMode(MOTOR_B1, OUTPUT);
   pinMode(MOTOR_B2, OUTPUT);
 
-  //input echo
-  pinMode(ECHO_PIN, INPUT);
-  //output trigger
-  pinMode(TRIG_PIN, OUTPUT);
   pinMode(SERVO_PIN, OUTPUT);
 
 }
 
-void loop() 
-{
-  
-  pickUp();
-  
 
+void loop() 
+{  
+  pickUp();
 }
 
 void pickUp()
 {
-  // establish variables for duration of the ping, and the distance result
-  // in inches and centimeters:
-  long duration, inches, cm;
-  int readCount = 0; //counts the ammount of messages
 
-  // The PING))) is triggered by a HIGH pulse of 2 or more microseconds.
-  // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
-  digitalWrite(TRIG_PIN, LOW);
-  delayMicroseconds(2);
-  digitalWrite(TRIG_PIN, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(TRIG_PIN, LOW);
-
-  // The same pin is used to read the signal from the PING))): a HIGH pulse
-  // whose duration is the time (in microseconds) from the sending of the ping
-  // to the reception of its echo off of an object.
-  duration = pulseIn(ECHO_PIN, HIGH, 20000);
-
-  // convert the time into a distance
-  inches = microsecondsToInches(duration);
-  cm = microsecondsToCentimeters(duration);
+    unsigned long currentMillis = millis();
 
 
-  Serial.print(inches);
-  Serial.print("in, ");
-  Serial.print(cm);
-  Serial.print("cm");
-  Serial.println();
-  delay(100);
+    if(currentMillis - previousMillis >= interval)
+    {
+      previousMillis = currentMillis;
 
-  if (duration == 0) 
-  {
-  Serial.println("No echo received");
-  return;
-  }
+      openGrip();
+      delay(500);
 
-  //every message increments the message
-  readCount++;
+      closeGrip();
+      delay(500);
 
-  //if message amount ia above 50 the terminals cleara
-    if (readCount >= 50) {
-    Serial.println("\n\n\n\n\n\n\n\n\n\n"); // Prints new lines to push old data up
-    readCount = 0; // Reset counter
-      Serial.print("old deleted");
-      Serial.println();
-  }
+      openGrip();
+      delay(500);
 
-  moveForward();
-  
-  if (cm <= OBSTACLE_THRESHOLD){
+      closeGrip();
+      delay(500);
 
-    stopMotor();
-    delay(1000);
+      moveForward();
+      delay(500);
 
-    openGrip();
-    delay(1000);
+      stopMotor();
+      delay(1000);
 
-    closeGrip();
-    delay(1000);
+      openGrip();
+      delay(500);
 
-    openGrip();
-    delay(1000);
-
-    closeGrip();
-    delay(1000);
-
-    moveForward();
-    delay(500);
-
-    stopMotor();
-    delay(1000);
-
-    openGrip();
-    delay(1000);
+      moveForward();
+      delay(500);
 
 
-
-  }
+    }
 
 }
-
-
 
 void openGrip(){
   generatePulse(OPENGRIP_VALUE);
