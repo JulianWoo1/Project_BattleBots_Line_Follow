@@ -62,7 +62,29 @@ void setup()
 
 void loop() 
 {  
-  pickUp();
+  //pickUp();
+
+  openGrip();
+  millisDelay(1000);
+
+  closeGrip();
+  millisDelay(2000);
+
+  openGrip();
+  millisDelay(3000);
+
+  moveForward();
+  millisDelay(4000);
+
+  closeGrip();
+  millisDelay(5000);
+
+  moveForward();
+  millisDelay(6000);
+
+  stopMotor();
+
+  
 }
 
 void pickUp()
@@ -134,13 +156,19 @@ void pickUp()
 
 void openGrip(){
   generatePulse(OPENGRIP_VALUE);
-  delay(300);
 }
 
 void closeGrip()
 {
   generatePulse(CLOSEGRIP_VALUE);
-  delay(300);
+}
+
+void millisDelay(unsigned long duration) 
+{
+  unsigned long startTime = millis(); // Record the start time
+  while (millis() - startTime < duration) {
+    // Code inside loop runs while waiting (other tasks can be added here)
+  }
 }
 
 void moveForward() {  
