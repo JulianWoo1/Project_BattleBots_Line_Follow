@@ -127,6 +127,7 @@ void pickUp() {
   }
 }
 
+
 void openGrip() {
   generatePulse(OPENGRIP_VALUE);
   delay(300);

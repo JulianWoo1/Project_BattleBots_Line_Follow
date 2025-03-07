@@ -17,20 +17,11 @@ const int MOTOR_B1 = 6;
 // Motor B2 is pin 9
 const int MOTOR_B2 = 9;
 
-const int MAX_SPEED = 240;
+const int MAX_SPEED = 255;
 
 //range how the gripper open and closes. 360 degrees
 int OPENGRIP_VALUE = 120;
 int CLOSEGRIP_VALUE = 50;
-
-unsigned long previousMillis = 0;
-
-const long interval = 2000; //time between actions. every 1000 is a second
-
-// establish variables for duration of the ping, and the distance result
-// in inches and centimeters:
-long duration, inches, cm;
-int readCount = 0; //counts the ammount of messages
 
 void generatePulse(int angle){
   int pulseWidth = map(angle, 0, 180, 544, 2400);
@@ -62,97 +53,28 @@ void setup()
 
 void loop() 
 {  
-  //pickUp();
-
   openGrip();
   millisDelay(1000);
 
   closeGrip();
-  millisDelay(2000);
+  millisDelay(1000);
 
   openGrip();
-  millisDelay(3000);
+  millisDelay(1000);
 
   moveForward();
-  millisDelay(4000);
-
-  closeGrip();
-  millisDelay(5000);
-
-  moveForward();
-  millisDelay(6000);
+  millisDelay(1000);
 
   stopMotor();
+  millisDelay(1000);
 
-  
+
+  closeGrip();
+  millisDelay(1000);
+  pickUp(1000);
+
+  stopMotor();
 }
-
-void pickUp()
-{
-      // Store the current time in milliseconds since the program started
-      unsigned long currentMillis = millis();
-
-      static unsigned long previousMillis1 = 0;
-      static unsigned long previousMillis2 = 0;
-      static unsigned long previousMillis3 = 0;
-      static unsigned long previousMillis4 = 0;
-      static unsigned long previousMillis5 = 0;
-      static bool open = false;
-
-      int interval2 = 2000;
-      int interval3 = 3000;
-      int interval4 = 4000;
-      int interval5 = 5000;
-
-      // Check if the difference between the current time and the previous time is greater than or equal to the set interval
-      //interval = 1000
-      if(currentMillis - previousMillis1 >= interval)
-      {
-        if(!open)
-        {
-          openGrip();
-        }
-        else
-        {
-          closeGrip();
-        }
-
-        // If true, update the previous time to the current time
-        //when the if statement finishes it loops again.
-        open = !open;
-        previousMillis1 = currentMillis;
-      
-      }
-
-      if(currentMillis - previousMillis2 >= interval2)
-      {
-        moveForward();
-        previousMillis2 = currentMillis;
-      }
-
-      if(currentMillis - previousMillis3 >= interval3)
-      {
-        stopMotor();
-        previousMillis3 = currentMillis;
-      }
-
-      if(currentMillis - previousMillis4 >= interval4)
-      {
-        if(open)
-        {
-          closeGrip();
-        }
-        previousMillis4 = currentMillis;
-      }
-
-      if(currentMillis - previousMillis5 >= interval5)
-      {
-        moveForward();
-        previousMillis5 = currentMillis;
-      }
-    
-}
-
 
 void openGrip(){
   generatePulse(OPENGRIP_VALUE);
@@ -163,10 +85,19 @@ void closeGrip()
   generatePulse(CLOSEGRIP_VALUE);
 }
 
-void millisDelay(unsigned long duration) 
+void pickUp(unsigned long duration) 
 {
   unsigned long startTime = millis(); // Record the start time
   while (millis() - startTime < duration) {
+    moveForward();
+  }
+}
+
+void millisDelay(unsigned long duration) 
+{
+  unsigned long startTime = millis(); // Record the start time
+  while (millis() - startTime < duration) 
+  {
     // Code inside loop runs while waiting (other tasks can be added here)
   }
 }
@@ -221,25 +152,8 @@ void stopMotor(){
 }
 
 
-  long microsecondsToInches(long microseconds) {
-    // According to Parallax's datasheet for the PING))), there are 73.746
-    // microseconds per inch (i.e. sound travels at 1130 feet per second).
-    // This gives the distance travelled by the ping, outbound and return,
-    // so we divide by 2 to get the distance of the obstacle.
-    // See: https://www.parallax.com/package/ping-ultrasonic-distance-sensor-downloads/
-    return microseconds / 74 / 2;
-  }
 
-  long microsecondsToCentimeters(long microseconds) {
-    // The speed of sound is 340 m/s or 29 microseconds per centimeter.
-    // The ping travels out and back, so to find the distance of the object we
-    // take half of the distance travelled.
-    return microseconds / 29 / 2;
-
-  }
-
-
-  void brakeLight() {
+void brakeLight() {
   pixels.clear(); // Set all pixel colors to 'off'
   pixels.setPixelColor(0, pixels.Color(0, 150, 0)); //Set left rear color to orange (G,R,B)
   pixels.setPixelColor(1, pixels.Color(0, 150, 0)); //Set right rear color to orange (G,R,B)
@@ -256,7 +170,7 @@ void rightSignal() {
 
     // Turn the pixels off
     pixels.clear(); // Set all pixel colors to 'off'
-    pixels.show();   // Send the updated pixel colors to the hardware.
+    pixels.show();  // Send the updated pixel colors to the hardware.
 
     delay(500); // Wait for the specified time
 }
