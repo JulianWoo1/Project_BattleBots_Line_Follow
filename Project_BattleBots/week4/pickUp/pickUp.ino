@@ -25,7 +25,7 @@ int CLOSEGRIP_VALUE = 50;
 
 unsigned long previousMillis = 0;
 
-const long interval = 2000; //time between actions
+const long interval = 2000; //time between actions. every 1000 is a second
 
 // establish variables for duration of the ping, and the distance result
 // in inches and centimeters:
@@ -67,42 +67,70 @@ void loop()
 
 void pickUp()
 {
+      // Store the current time in milliseconds since the program started
+      unsigned long currentMillis = millis();
 
-    unsigned long currentMillis = millis();
+      static unsigned long previousMillis1 = 0;
+      static unsigned long previousMillis2 = 0;
+      static unsigned long previousMillis3 = 0;
+      static unsigned long previousMillis4 = 0;
+      static unsigned long previousMillis5 = 0;
+      static bool open = false;
 
+      int interval2 = 2000;
+      int interval3 = 3000;
+      int interval4 = 4000;
+      int interval5 = 5000;
 
-    if(currentMillis - previousMillis >= interval)
-    {
-      previousMillis = currentMillis;
+      // Check if the difference between the current time and the previous time is greater than or equal to the set interval
+      //interval = 1000
+      if(currentMillis - previousMillis1 >= interval)
+      {
+        if(!open)
+        {
+          openGrip();
+        }
+        else
+        {
+          closeGrip();
+        }
 
-      openGrip();
-      delay(500);
+        // If true, update the previous time to the current time
+        //when the if statement finishes it loops again.
+        open = !open;
+        previousMillis1 = currentMillis;
+      
+      }
 
-      closeGrip();
-      delay(500);
+      if(currentMillis - previousMillis2 >= interval2)
+      {
+        moveForward();
+        previousMillis2 = currentMillis;
+      }
 
-      openGrip();
-      delay(500);
+      if(currentMillis - previousMillis3 >= interval3)
+      {
+        stopMotor();
+        previousMillis3 = currentMillis;
+      }
 
-      closeGrip();
-      delay(500);
+      if(currentMillis - previousMillis4 >= interval4)
+      {
+        if(open)
+        {
+          closeGrip();
+        }
+        previousMillis4 = currentMillis;
+      }
 
-      moveForward();
-      delay(500);
-
-      stopMotor();
-      delay(1000);
-
-      openGrip();
-      delay(500);
-
-      moveForward();
-      delay(500);
-
-
-    }
-
+      if(currentMillis - previousMillis5 >= interval5)
+      {
+        moveForward();
+        previousMillis5 = currentMillis;
+      }
+    
 }
+
 
 void openGrip(){
   generatePulse(OPENGRIP_VALUE);
