@@ -18,12 +18,16 @@ const int MOTOR_SENSOR2 = A5;
 const int TRANSMIT_PIN = 11; 
 
 const int MAX_SPEED = 240;
+const int TURN_SPEED = 150;
 
 const int NUM_SENSORS = 8;
 const int SENSOR_PINS[NUM_SENSORS] = {A7, A6, A5, A4, A3, A2, A1, A0};
 
 int minValues[NUM_SENSORS];
 int maxValues[NUM_SENSORS];
+
+// Store last known direction: -1 (left), 1 (right), 0 (center)
+int LAST_DIRECTION = 0;
 
 void setup() {
   pinMode(MOTOR_A1, OUTPUT);
@@ -47,13 +51,93 @@ void setup() {
   stop();  
 }
 
-void drive(int speedLeft, int speedRight) {
-  speedLeft = constrain(speedLeft, 0, MAX_SPEED);
-  speedRight = constrain(speedRight, 0, MAX_SPEED);
+void loop() {
+  int sensorReadings[NUM_SENSORS];
+  bool BLACK_LINE_DETECTED = false;
+
+  for (int i = 0; i < NUM_SENSORS; i++) {
+      sensorReadings[i] = analogRead(SENSOR_PINS[i]);
+
+      minValues[i] = min(sensorReadings[i], minValues[i]);
+      maxValues[i] = max(sensorReadings[i], maxValues[i]);
+  }
+
+  int AVG_VALUE = 0;
+  for (int j = 0; j < NUM_SENSORS; j++) {
+      AVG_VALUE += (minValues[j] + maxValues[j]) / 2;
+  }
+  AVG_VALUE /= NUM_SENSORS;
+  
+  int DEADZONE_LOW = AVG_VALUE - 50;
+  int DEADZONE_HIGH = AVG_VALUE + 50;
+
+  // Detect if any sensor sees black
+  for (int i = 0; i < NUM_SENSORS; i++) {
+      if (sensorReadings[i] <= DEADZONE_LOW) { 
+          BLACK_LINE_DETECTED = true;
+          break;
+      }
+  }
+
+  // Line Following Logic
+  if (sensorReadings[4] >= DEADZONE_HIGH && sensorReadings[5] >= DEADZONE_HIGH) {
+      drive(255, 255);  // Move forward
+      LAST_DIRECTION = 0;  // Reset direction when moving straight
+  }
+  else if (sensorReadings[5] >= DEADZONE_HIGH && sensorReadings[6] >= DEADZONE_HIGH) {
+      drive(255, 165);  // Slight right
+      LAST_DIRECTION = -1;  // Remember last seen black was on the left
+      rightSignal();
+  } 
+  else if (sensorReadings[6] >= DEADZONE_HIGH && sensorReadings[7] >= DEADZONE_HIGH) {
+      drive(255, 5);   // More right
+      LAST_DIRECTION = -1;
+      rightSignal();
+  }  
+  else if (sensorReadings[7] >= DEADZONE_HIGH && sensorReadings[7] >= DEADZONE_HIGH) {
+    drive(255, 55);   // sharp right
+    LAST_DIRECTION = -1;
+    rightSignal();
+  }  
+  else if (sensorReadings[3] >= DEADZONE_HIGH && sensorReadings[4] >= DEADZONE_HIGH) {
+      drive(165, 255);  // Slight left
+      LAST_DIRECTION = 1;  // Remember last seen black was on the right
+      leftSignal();
+  }  
+  else if (sensorReadings[2] >= DEADZONE_HIGH && sensorReadings[3] >= DEADZONE_HIGH) {
+      drive(5, 255);   // More left
+      LAST_DIRECTION = 1;
+      leftSignal();
+  }  
+  else if (sensorReadings[1] >= DEADZONE_HIGH && sensorReadings[2] >= DEADZONE_HIGH) {
+      drive(55, 255);   // Sharp left
+      LAST_DIRECTION = 1;
+      leftSignal();
+  }  
+  else {
+      // If line is lost, steer towards last known direction
+      if (LAST_DIRECTION == -1) {
+          drive(255, 0);  // Turn left to search
+      } 
+      else if (LAST_DIRECTION == 1) {
+          drive(0, 255);  // Turn right to search
+      } 
+      else {
+          drive(0, 0);  // Stop if no memory
+      } 
+      alarm();
+  }
+
+  delay(50);  
+}
+
+void drive(int SPEED_LEFT, int SPEED_RIGHT) {
+  SPEED_LEFT = constrain(SPEED_LEFT, 0, MAX_SPEED);
+  SPEED_RIGHT = constrain(SPEED_RIGHT, 0, MAX_SPEED);
 
   analogWrite(MOTOR_A1, 0);
-  analogWrite(MOTOR_A2, speedLeft);
-  analogWrite(MOTOR_B1, speedRight);
+  analogWrite(MOTOR_A2, SPEED_LEFT);
+  analogWrite(MOTOR_B1, SPEED_RIGHT);
   analogWrite(MOTOR_B2, 0);
 }
 
@@ -65,17 +149,17 @@ void stop() {
 }
 
 void turnLeft() {
-  analogWrite(MOTOR_A1, 150);  
+  analogWrite(MOTOR_A1, TURN_SPEED);  
   analogWrite(MOTOR_A2, 0);
-  analogWrite(MOTOR_B1, 150);  
+  analogWrite(MOTOR_B1, TURN_SPEED);  
   analogWrite(MOTOR_B2, 0);
 }
 
 void turnRight() {
   analogWrite(MOTOR_A1, 0);  
-  analogWrite(MOTOR_A2, 150);
+  analogWrite(MOTOR_A2, TURN_SPEED);
   analogWrite(MOTOR_B1, 0);  
-  analogWrite(MOTOR_B2, 150);
+  analogWrite(MOTOR_B2, TURN_SPEED);
 }
 
 void moveForward() {  
@@ -104,86 +188,6 @@ void slowTurnLeft() {
   analogWrite(MOTOR_A2, 0);  
   analogWrite(MOTOR_B1, 150);  
   analogWrite(MOTOR_B2, 0);
-}
-
-
-
-// Store last known direction: -1 (left), 1 (right), 0 (center)
-int lastDirection = 0;
-
-void loop() {
-  int sensorReadings[NUM_SENSORS];
-  bool blackDetected = false;
-
-  for (int i = 0; i < NUM_SENSORS; i++) {
-      sensorReadings[i] = analogRead(SENSOR_PINS[i]);
-
-      minValues[i] = min(sensorReadings[i], minValues[i]);
-      maxValues[i] = max(sensorReadings[i], maxValues[i]);
-  }
-
-  int result = 0;
-  for (int j = 0; j < NUM_SENSORS; j++) {
-      result += (minValues[j] + maxValues[j]) / 2;
-  }
-  result /= NUM_SENSORS;
-  
-  int DEADZONE_LOW = result - 50;
-  int DEADZONE_HIGH = result + 50;
-
-  // Detect if any sensor sees black
-  for (int i = 0; i < NUM_SENSORS; i++) {
-      if (sensorReadings[i] <= DEADZONE_LOW) { 
-          blackDetected = true;
-          break;
-      }
-  }
-
-  // Line Following Logic
-  if (sensorReadings[4] >= DEADZONE_HIGH && sensorReadings[5] >= DEADZONE_HIGH) {
-      drive(255, 255);  // Move forward
-      lastDirection = 0;  // Reset direction when moving straight
-  }
-  else if (sensorReadings[5] >= DEADZONE_HIGH && sensorReadings[6] >= DEADZONE_HIGH) {
-      drive(255, 170);  // Slight right
-      lastDirection = -1;  // Remember last seen black was on the left
-      rightSignal();
-  } 
-  else if (sensorReadings[6] >= DEADZONE_HIGH && sensorReadings[7] >= DEADZONE_HIGH) {
-      drive(255, 10);   // More right
-      lastDirection = -1;
-      rightSignal();
-  }  
-  else if (sensorReadings[3] >= DEADZONE_HIGH && sensorReadings[4] >= DEADZONE_HIGH) {
-      drive(170, 255);  // Slight left
-      lastDirection = 1;  // Remember last seen black was on the right
-      leftSignal();
-  }  
-  else if (sensorReadings[2] >= DEADZONE_HIGH && sensorReadings[3] >= DEADZONE_HIGH) {
-      drive(60, 255);   // More left
-      lastDirection = 1;
-      leftSignal();
-  }  
-  else if (sensorReadings[1] >= DEADZONE_HIGH && sensorReadings[2] >= DEADZONE_HIGH) {
-      drive(10, 255);   // Sharp left
-      lastDirection = 1;
-      leftSignal();
-  }  
-  else {
-      // If line is lost, steer towards last known direction
-      if (lastDirection == -1) {
-          drive(255, 0);  // Turn left to search
-      } 
-      else if (lastDirection == 1) {
-          drive(0, 255);  // Turn right to search
-      } 
-      else {
-          drive(0, 0);  // Stop if no memory
-      }
-      alarm();
-  }
-
-  delay(50);  
 }
 
 void brakeLight() {

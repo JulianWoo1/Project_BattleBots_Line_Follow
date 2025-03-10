@@ -23,10 +23,13 @@ const int MAX_SPEED = 255;
 int OPENGRIP_VALUE = 120;
 int CLOSEGRIP_VALUE = 50;
 
-void generatePulse(int angle){
-  int pulseWidth = map(angle, 0, 180, 544, 2400);
+int INTERVAL = 1000;
+int PREVIOUSMILLIS = 0;
+
+void generatePulse(int ANGLE){
+  int PULSEWIDTH = map(ANGLE, 0, 180, 544, 2400);
   digitalWrite(SERVO_PIN, HIGH);
-  delayMicroseconds(pulseWidth);
+  delayMicroseconds(PULSEWIDTH);
   digitalWrite(SERVO_PIN, LOW);
 }
 
@@ -53,6 +56,8 @@ void setup()
 
 void loop() 
 {  
+  timer();
+
   openGrip();
   millisDelay(1000);
 
@@ -63,7 +68,7 @@ void loop()
   millisDelay(1000);
 
   moveForward();
-  millisDelay(1000);
+  millisDelay(2000);
 
   stopMotor();
   millisDelay(1000);
@@ -71,9 +76,11 @@ void loop()
 
   closeGrip();
   millisDelay(1000);
-  pickUp(1000);
+  pickUp(2000);
 
   stopMotor();
+
+
 }
 
 void openGrip(){
@@ -85,21 +92,32 @@ void closeGrip()
   generatePulse(CLOSEGRIP_VALUE);
 }
 
-void pickUp(unsigned long duration) 
+void pickUp(unsigned long DURATION) 
 {
-  unsigned long startTime = millis(); // Record the start time
-  while (millis() - startTime < duration) {
+  unsigned long START_TIME = millis(); // Record the start time
+  while (millis() - START_TIME < DURATION) {
     moveForward();
   }
 }
 
-void millisDelay(unsigned long duration) 
+void millisDelay(unsigned long DURATION) 
 {
-  unsigned long startTime = millis(); // Record the start time
-  while (millis() - startTime < duration) 
+  unsigned long START_TIME = millis(); // Record the start time
+  while (millis() - START_TIME < DURATION) 
   {
     // Code inside loop runs while waiting (other tasks can be added here)
   }
+}
+
+void timer()
+{
+  unsigned long CURRENTMILLIS = millis();
+   if(CURRENTMILLIS - PREVIOUSMILLIS >= INTERVAL) 
+   {
+    PREVIOUSMILLIS = CURRENTMILLIS;
+    Serial.println(CURRENTMILLIS);
+   }
+
 }
 
 void moveForward() {  
