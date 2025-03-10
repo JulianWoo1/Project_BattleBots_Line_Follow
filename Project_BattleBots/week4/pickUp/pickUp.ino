@@ -56,8 +56,9 @@ void setup()
 
 void loop() 
 {  
-  timer();
 
+  //lightShow();
+  
   openGrip();
   millisDelay(1000);
 
@@ -79,6 +80,7 @@ void loop()
   pickUp(2000);
 
   stopMotor();
+
 
 
 }
@@ -107,17 +109,6 @@ void millisDelay(unsigned long DURATION)
   {
     // Code inside loop runs while waiting (other tasks can be added here)
   }
-}
-
-void timer()
-{
-  unsigned long CURRENTMILLIS = millis();
-   if(CURRENTMILLIS - PREVIOUSMILLIS >= INTERVAL) 
-   {
-    PREVIOUSMILLIS = CURRENTMILLIS;
-    Serial.println(CURRENTMILLIS);
-   }
-
 }
 
 void moveForward() {  
@@ -206,5 +197,53 @@ void leftSignal() {
     pixels.show();   // Send the updated pixel colors to the hardware.
 
     delay(500); // Wait for the specified time
+}
+
+
+void lightShow() 
+{
+    for (int i = 0; i < 5; i++) { // Repeat the effect 5 times
+        // Rainbow cycle effect
+        for (int j = 0; j < 256; j += 5) 
+        {
+            for (int k = 0; k < NUM_PIXELS; k++) {
+                pixels.setPixelColor(k, pixels.Color(j, 255 - j, (j * 2) % 255));
+            }
+            pixels.show();
+            delay(50);
+        }
+
+        // Strobe effect (all pixels flash white)
+        for (int j = 0; j < 5; j++) {
+            pixels.fill(pixels.Color(255, 255, 255)); // White
+            pixels.show();
+            delay(100);
+            pixels.clear();
+            pixels.show();
+            delay(100);
+        }
+
+        // Chasing lights effect
+        for (int j = 0; j < NUM_PIXELS; j++) 
+        {
+            pixels.clear();
+            pixels.setPixelColor(j, pixels.Color(0, 255, 0)); // Green
+            pixels.show();
+            delay(200);
+        }
+
+        // Random colors flashing
+        for (int j = 0; j < 10; j++) {
+            for (int k = 0; k < NUM_PIXELS; k++) 
+            {
+                pixels.setPixelColor(k, pixels.Color(random(255), random(255), random(255)));
+            }
+            pixels.show();
+            delay(200);
+        }
+    }
+
+    pixels.clear();
+    pixels.show();
 }
 
