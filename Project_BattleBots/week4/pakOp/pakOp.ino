@@ -8,17 +8,13 @@ Adafruit_NeoPixel pixels(NUM_PIXELS, NEO_PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
 const int SERVO_PIN = 3; 
 
-// Motor A1 is pin 10
-const int MOTOR_A1 = 10;
-// Motor A2 is pin 5
-const int MOTOR_A2 = 5;
-// Motor B1 is pin 6
-const int MOTOR_B1 = 6;
-// Motor B2 is pin 9
-const int MOTOR_B2 = 9;
+const int MOTOR_A1 = 10;  // Left motor pin 1
+const int MOTOR_A2 = 5;   // Left motor pin 2
+const int MOTOR_B1 = 6;   // Right motor pin 1
+const int MOTOR_B2 = 9;   // Right motor pin 2
 
-const int MAX_SPEED = 240;
-const int MID_SPEED = 190;
+const int MAX_SPEED = 255;
+const int MID_SPEED = 220;
 
 //range how the gripper open and closes. 360 degrees
 int OPENGRIP_VALUE = 120;
@@ -33,10 +29,9 @@ const long OPEN_TIME = 0;            // Open grip at start
 const long CLOSE_TIME = 1000;        // Close grip after 1s
 const long OPEN_AGAIN_TIME = 2000;    // Open grip again after 2s
 const long DRIVE_START_TIME = 3000;   // Start driving after 3s
-const long GRAB_TIME = 4000;         // Grab cone after 4s (after driving)
-const long DRIVE_AGAIN_TIME = 5000;   // Drive again after 5s
-const long HOLD_TIME = 7000;         // Stop and hold after 7s
-const long DROP_TIME = 10000;        // Drop after 10s
+const long GRAB_TIME = 4000;         // Grab cone after 4s 
+const long HOLD_TIME = 6000;         // Stop and hold after 6s
+const long DROP_TIME = 8000;        // Drop after 8s
 
 boolean isGripClosed = false;
 
@@ -53,12 +48,8 @@ void setup()
   
   // initialize serial communication:
   Serial.begin(9600);
-
-  //motor A have output
   pinMode(MOTOR_A1, OUTPUT);
   pinMode(MOTOR_A2, OUTPUT);
-
-  //motor B have output
   pinMode(MOTOR_B1, OUTPUT);
   pinMode(MOTOR_B2, OUTPUT);
 
@@ -73,6 +64,7 @@ void loop()
 }
 
 void pickUp() {
+<<<<<<< HEAD
     currentMillis = millis();
     unsigned long elapsedTime = currentMillis - previousActionMillis;
     
@@ -121,21 +113,54 @@ void pickUp() {
     else if(elapsedTime >= HOLD_TIME && elapsedTime < DROP_TIME) {
       stopMotor();
     }
+=======
+  currentMillis = millis();
+  unsigned long elapsedTime = currentMillis - previousActionMillis;
+  
+  // Keep servo active, 20 ms interval
+  if(currentMillis - previousServoMillis >= SERVO_INTERVAL) {
+    previousServoMillis = currentMillis;
+    if(isGripClosed) {
+      generatePulse(CLOSEGRIP_VALUE);
+    } else {
+      generatePulse(OPENGRIP_VALUE);
+    }
+  }
+  
+  // Open the grip
+  if(elapsedTime >= OPEN_TIME && elapsedTime < CLOSE_TIME) {
+    isGripClosed = false;
+  }
+  
+  // Close it after 1 second
+  else if(elapsedTime >= CLOSE_TIME && elapsedTime < OPEN_AGAIN_TIME) {
+    isGripClosed = true;
+  }
+  
+  // Open it again after 1 more second
+  else if(elapsedTime >= OPEN_AGAIN_TIME && elapsedTime < DRIVE_START_TIME) {
+    isGripClosed = false;
+  }
+  
+  // Drive forward to the cone
+  else if(elapsedTime >= DRIVE_START_TIME && elapsedTime < GRAB_TIME) {
+    moveForward();
+  }
+  
+  // Grab the cone
+  else if(elapsedTime >= GRAB_TIME && elapsedTime < HOLD_TIME) {
+    isGripClosed = true;
+  }
+  
+  // Stop and hold the cone
+  else if(elapsedTime >= HOLD_TIME && elapsedTime < DROP_TIME) {
+    stopMotor();
+  }
+>>>>>>> 5e4fef566b9e813f99a3379e91ad0800c0d22ca1
 
     else if (elapsedTime >= DROP_TIME) {
       isGripClosed = false;
     }
-}
-
-
-void openGrip() {
-  generatePulse(OPENGRIP_VALUE);
-  delay(300);
-}
-
-void closeGrip() {
-  generatePulse(CLOSEGRIP_VALUE);
-  delay(300);
 }
 
 void moveForward() {  
@@ -145,36 +170,6 @@ void moveForward() {
   analogWrite(MOTOR_B1, MID_SPEED);  
   analogWrite(MOTOR_B2, 0);
 
-}
-
-//function to make robot go backwards
-void moveBackwards() {
-  brakeLight();
-  analogWrite(MOTOR_A1, MAX_SPEED);  
-  analogWrite(MOTOR_A2, 0);
-
-  analogWrite(MOTOR_B1, 0);  
-  analogWrite(MOTOR_B2, MAX_SPEED);
-}
-
-//function to make robot go left
-void moveLeft(){
-  leftSignal();
-  analogWrite(MOTOR_A1, MAX_SPEED);  
-  analogWrite(MOTOR_A2, 0);
-
-  analogWrite(MOTOR_B1, MAX_SPEED);  
-  analogWrite(MOTOR_B2, 0);
-}
-
-//function to make robot go right
-void moveRight(){
-  rightSignal();
-  analogWrite(MOTOR_A1, 0);  
-  analogWrite(MOTOR_A2, MAX_SPEED);
-
-  analogWrite(MOTOR_B1, 0);  
-  analogWrite(MOTOR_B2, MAX_SPEED);
 }
 
 //function to make robot stop
