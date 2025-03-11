@@ -73,58 +73,58 @@ void loop()
 }
 
 void pickUp() {
-  currentMillis = millis();
-  unsigned long elapsedTime = currentMillis - previousActionMillis;
-  
-  // Keep servo active
-  if(currentMillis - previousServoMillis >= SERVO_INTERVAL) {
-    previousServoMillis = currentMillis;
-    if(isGripClosed) {
-      generatePulse(CLOSEGRIP_VALUE);
-    } else {
-      generatePulse(OPENGRIP_VALUE);
+    currentMillis = millis();
+    unsigned long elapsedTime = currentMillis - previousActionMillis;
+    
+    // Keep servo active
+    if(currentMillis - previousServoMillis >= SERVO_INTERVAL) {
+      previousServoMillis = currentMillis;
+      if(isGripClosed) {
+        generatePulse(CLOSEGRIP_VALUE);
+      } else {
+        generatePulse(OPENGRIP_VALUE);
+      }
     }
-  }
-  
-  // Open the grip
-  if(elapsedTime >= OPEN_TIME && elapsedTime < CLOSE_TIME && isGripClosed) {
-    isGripClosed = false;
-  }
-  
-  // Close it after 1 second
-  else if(elapsedTime >= CLOSE_TIME && elapsedTime < OPEN_AGAIN_TIME && !isGripClosed) {
-    isGripClosed = true;
-  }
-  
-  // Open it again after 1 more second
-  else if(elapsedTime >= OPEN_AGAIN_TIME && elapsedTime < DRIVE_START_TIME && isGripClosed) {
-    isGripClosed = false;
-  }
-  
-  // Drive forward to the cone
-  else if(elapsedTime >= DRIVE_START_TIME && elapsedTime < GRAB_TIME) {
-    moveForward();
-  }
-  
-  // Stop and grab the cone
-  else if(elapsedTime >= GRAB_TIME && elapsedTime < DRIVE_AGAIN_TIME && !isGripClosed) {
-    stopMotor();
-    isGripClosed = true;
-  }
-  
-  // Drive forward again with the cone
-  else if(elapsedTime >= DRIVE_AGAIN_TIME && elapsedTime < HOLD_TIME) {
-    moveForward();
-  }
-  
-  // Stop and hold the cone
-  else if(elapsedTime >= HOLD_TIME && elapsedTime < DROP_TIME) {
-    stopMotor();
-  }
+    
+    // Open the grip
+    if(elapsedTime >= OPEN_TIME && elapsedTime < CLOSE_TIME && isGripClosed) {
+      isGripClosed = false;
+    }
+    
+    // Close it after 1 second
+    else if(elapsedTime >= CLOSE_TIME && elapsedTime < OPEN_AGAIN_TIME && !isGripClosed) {
+      isGripClosed = true;
+    }
+    
+    // Open it again after 1 more second
+    else if(elapsedTime >= OPEN_AGAIN_TIME && elapsedTime < DRIVE_START_TIME && isGripClosed) {
+      isGripClosed = false;
+    }
+    
+    // Drive forward to the cone
+    else if(elapsedTime >= DRIVE_START_TIME && elapsedTime < GRAB_TIME) {
+      moveForward();
+    }
+    
+    // Stop and grab the cone
+    else if(elapsedTime >= GRAB_TIME && elapsedTime < DRIVE_AGAIN_TIME && !isGripClosed) {
+      stopMotor();
+      isGripClosed = true;
+    }
+    
+    // Drive forward again with the cone
+    else if(elapsedTime >= DRIVE_AGAIN_TIME && elapsedTime < HOLD_TIME) {
+      moveForward();
+    }
+    
+    // Stop and hold the cone
+    else if(elapsedTime >= HOLD_TIME && elapsedTime < DROP_TIME) {
+      stopMotor();
+    }
 
-  else if (elapsedTime >= DROP_TIME) {
-    isGripClosed = false;
-  }
+    else if (elapsedTime >= DROP_TIME) {
+      isGripClosed = false;
+    }
 }
 
 
