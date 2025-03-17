@@ -34,6 +34,7 @@ const long SERVO_INTERVAL = 20; // 20ms delay for the servo
 boolean isGripClosed = false;
 
 const int MAX_SPEED = 255;
+const int MAX_REVERSE_SPEED = -255;
 
 const int OBSTACLE_THRESHOLD = 10; // Trigger distance of obstacle in cm
 const int END_OF_LINE_TIMEOUT = 800; // Time in ms to determine it's an end square or crossing a line 
@@ -216,11 +217,13 @@ void calibrate() {
     }
     pixels.show();
     
-    drive(220, 220); // Continue forward at medium speed
+    drive(255, 255); // Continue forward at medium speed
+    delay(20);
+    drive(220, 220);
     readCalibrateSensors(); // Read and update min/max values
     
     // After enough time to cross calibration lines
-    if (millis() - stateStartTime > 700) {
+    if (millis() - stateStartTime > 500) {
       // Finalize calibration by calculating thresholds
       calculateThresholds();
       calibrationComplete = true;
@@ -366,8 +369,8 @@ void findLine() {
   
   // If it's searching too long, move forward a bit and try again
   if (millis() - stateStartTime > 3000) {
-    drive(150, 150);
-    delay(500);
+    drive(220, 220);
+    delay(300);
     stateStartTime = millis(); // Reset the timer
   }
 }
@@ -382,7 +385,7 @@ void follow() {
   // If all sensors are black for a longer period of time
   if (isEndOfLine()) {
     currentState = END_OF_THE_LINE;
-    stateStartTime = millis(); // Set start time for the END_OF_THE_LINE state
+    stateStartTime = millis(); // Set start time for the state
     Serial.println("End of line detected!");
     return;
   }
@@ -519,8 +522,8 @@ void end() {
 }
 
 void drive(int SPEED_LEFT, int SPEED_RIGHT) {
-  SPEED_LEFT = constrain(SPEED_LEFT, -255, MAX_SPEED);
-  SPEED_RIGHT = constrain(SPEED_RIGHT, -255, MAX_SPEED);
+  SPEED_LEFT = constrain(SPEED_LEFT, MAX_REVERSE_SPEED, MAX_SPEED);
+  SPEED_RIGHT = constrain(SPEED_RIGHT, MAX_REVERSE_SPEED, MAX_SPEED);
 
   analogWrite(MOTOR_A1, 0);
   analogWrite(MOTOR_A2, SPEED_LEFT);
